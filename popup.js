@@ -25,7 +25,7 @@ Popup = {
   // Data from API cached for this popup.
   workspaces: null,
   users: null,
-  user_id: null,
+  user_gid: null,
   
   // Typeahead ui element
   typeahead: null,
@@ -208,24 +208,24 @@ Popup = {
 
     // Populate workspace selector and select default.
     Asana.ServerModel.me(function(user) {
-      me.user_id = user.id;
+      me.user_gid = user.gid;
       Asana.ServerModel.workspaces(function(workspaces) {
         me.workspaces = workspaces;
         var select = $("#workspace_select");
         select.html("");
         workspaces.forEach(function(workspace) {
           $("#workspace_select").append(
-              "<option value='" + workspace.id + "'>" + workspace.name + "</option>");
+              "<option value='" + workspace.gid + "'>" + workspace.name + "</option>");
         });
         if (workspaces.length > 1) {
           $("workspace_select_container").show();
         } else {
           $("workspace_select_container").hide();
         }
-        select.val(me.options.default_workspace_id);
+        select.val(me.options.default_workspace_gid);
         me.onWorkspaceChanged();
         select.change(function() {
-          if (select.val() !== me.options.default_workspace_id) {
+          if (select.val() !== me.options.default_workspace_gid) {
             Asana.ServerModel.logEvent({
               name: "ChromeExtension-ChangedWorkspace"
             });
@@ -292,7 +292,7 @@ Popup = {
   resetFields: function() {
     $("#name_input").val("");
     $("#notes_input").val("");
-    this.typeahead.setSelectedUserId(this.user_id);
+    this.typeahead.setSelectedUserId(this.user_gid);
   },
 
   /**
@@ -310,26 +310,26 @@ Popup = {
    */
   onWorkspaceChanged: function() {
     var me = this;
-    var workspace_id = me.selectedWorkspaceId();
+    var workspace_gid = me.selectedWorkspaceId();
 
     // Update selected workspace
     $("#workspace").html($("#workspace_select option:selected").text());
 
     // Save selection as new default.
-    Popup.options.default_workspace_id = workspace_id;
+    Popup.options.default_workspace_gid = workspace_gid;
     Asana.ServerModel.saveOptions(me.options, function() {});
 
     me.setAddEnabled(true);
   },
 
   /**
-   * @param id {Integer}
+   * @param gid {String}
    * @return {dict} Workspace data for the given workspace.
    */
-  workspaceById: function(id) {
+  workspaceById: function(gid) {
     var found = null;
     this.workspaces.forEach(function(w) {
-      if (w.id === id) {
+      if (w.gid === gid) {
         found = w;
       }
     });
@@ -337,10 +337,10 @@ Popup = {
   },
 
   /**
-   * @return {Integer} ID of the selected workspace.
+   * @return {String} ID of the selected workspace.
    */
   selectedWorkspaceId: function() {
-    return parseInt($("#workspace_select").val(), 10);
+    return $("#workspace_select").val();
   },
 
   /**
@@ -366,7 +366,7 @@ Popup = {
           name: $("#name_input").val(),
           notes: $("#notes_input").val(),
           // Default assignee to self
-          assignee: me.typeahead.selected_user_id || me.user_id
+          assignee: me.typeahead.selected_user_gid || me.user_gid
         },
         function(task) {
           // Success! Show task success, then get ready for another input.
@@ -456,36 +456,36 @@ Popup = {
  *       shown or hidden based on whether the user is interacting with the
  *       typeahead.
  *
- * @param id {String} Base ID of the typeahead element.
+ * @param gid {String} Base ID of the typeahead element.
  * @constructor
  */
-UserTypeahead = function(id) {
+UserTypeahead = function(gid) {
   var me = this;
-  me.id = id;
+  me.gid = gid;
   me.users = [];
   me.filtered_users = [];
-  me.user_id_to_user = {};
-  me.selected_user_id = null;
-  me.user_id_to_select = null;
+  me.user_gid_to_user = {};
+  me.selected_user_gid = null;
+  me.user_gid_to_select = null;
   me.has_focus = false;
 
   me._request_counter = 0;
 
   // Store off UI elements.
-  me.input = $("#" + id + "_input");
-  me.token_area = $("#" + id + "_token_area");
-  me.token = $("#" + id + "_token");
-  me.list = $("#" + id + "_list");
-  me.list_container = $("#" + id + "_list_container");
+  me.input = $("#" + gid + "_input");
+  me.token_area = $("#" + gid + "_token_area");
+  me.token = $("#" + gid + "_token");
+  me.list = $("#" + gid + "_list");
+  me.list_container = $("#" + gid + "_list_container");
 
   // Open on focus.
   me.input.focus(function() {
-    me.user_id_to_select = me.selected_user_id;
-    if (me.selected_user_id !== null) {
+    me.user_gid_to_select = me.selected_user_gid;
+    if (me.selected_user_gid !== null) {
       // If a user was already selected, fill the field with their name
-      // and select it all.  The user_id_to_user dict may not be populated yet.
-      if (me.user_id_to_user[me.selected_user_id]) {
-        var assignee_name = me.user_id_to_user[me.selected_user_id].name;
+      // and select it all.  The user_gid_to_user dict may not be populated yet.
+      if (me.user_gid_to_user[me.selected_user_gid]) {
+        var assignee_name = me.user_gid_to_user[me.selected_user_gid].name;
         me.input.val(assignee_name);
       } else {
         me.input.val("");
@@ -503,14 +503,14 @@ UserTypeahead = function(id) {
 
   // Close on blur. A natural blur does not cause us to accept the current
   // selection - there had to be a user action taken that causes us to call
-  // `confirmSelection`, which would have updated user_id_to_select.
+  // `confirmSelection`, which would have updated user_gid_to_select.
   me.input.blur(function() {
-    me.selected_user_id = me.user_id_to_select;
+    me.selected_user_gid = me.user_gid_to_select;
     me.has_focus = false;
     if (!Popup.has_reassigned) {
       Popup.has_reassigned = true;
       Asana.ServerModel.logEvent({
-        name: (me.selected_user_id === Popup.user_id || me.selected_user_id === null) ?
+        name: (me.selected_user_gid === Popup.user_gid || me.selected_user_gid === null) ?
             "ChromeExtension-AssignToSelf" :
             "ChromeExtension-AssignToOther"
       });
@@ -541,9 +541,9 @@ UserTypeahead = function(id) {
       // Down: select next.
       var index = me._indexOfSelectedUser();
       if (index === -1 && me.filtered_users.length > 0) {
-        me.setSelectedUserId(me.filtered_users[0].id);
+        me.setSelectedUserId(me.filtered_users[0].gid);
       } else if (index >= 0 && index < me.filtered_users.length) {
-        me.setSelectedUserId(me.filtered_users[index + 1].id);
+        me.setSelectedUserId(me.filtered_users[index + 1].gid);
       }
       me._ensureSelectedUserVisible();
       e.preventDefault();
@@ -551,7 +551,7 @@ UserTypeahead = function(id) {
       // Up: select prev.
       var index = me._indexOfSelectedUser();
       if (index > 0) {
-        me.setSelectedUserId(me.filtered_users[index - 1].id);
+        me.setSelectedUserId(me.filtered_users[index - 1].gid);
       }
       me._ensureSelectedUserVisible();
       e.preventDefault();
@@ -622,14 +622,14 @@ Asana.update(UserTypeahead.prototype, {
     // Build a map from user ID to user
     var this_user = null;
     var users_without_this_user = [];
-    me.user_id_to_user = {};
+    me.user_gid_to_user = {};
     users.forEach(function(user) {
-      if (user.id === Popup.user_id) {
+      if (user.gid === Popup.user_gid) {
         this_user = user;
       } else {
         users_without_this_user.push(user);
       }
-      me.user_id_to_user[user.id] = user;
+      me.user_gid_to_user[user.gid] = user;
     });
 
     // Put current user at the beginning of the list.
@@ -638,8 +638,8 @@ Asana.update(UserTypeahead.prototype, {
         [this_user].concat(users_without_this_user) : users_without_this_user;
 
     // If selected user is not in this workspace, unselect them.
-    if (!(me.selected_user_id in me.user_id_to_user)) {
-      me.selected_user_id = null;
+    if (!(me.selected_user_gid in me.user_gid_to_user)) {
+      me.selected_user_gid = null;
       me._updateInput();
     }
     me._updateFilteredUsers();
@@ -648,7 +648,7 @@ Asana.update(UserTypeahead.prototype, {
 
   _renderTokenOrPlaceholder: function() {
     var me = this;
-    var selected_user = me.user_id_to_user[me.selected_user_id];
+    var selected_user = me.user_gid_to_user[me.selected_user_gid];
     if (selected_user) {
       me.token.empty();
       if (selected_user.photo) {
@@ -658,13 +658,13 @@ Asana.update(UserTypeahead.prototype, {
           '<span class="tokenView-label">' +
           '  <span class="tokenView-labelText">' + selected_user.name + '</span>' +
           '</span>' +
-          '<a id = "' + me.id + '_token_remove" class="tokenView-remove">' +
+          '<a id = "' + me.gid + '_token_remove" class="tokenView-remove">' +
           '  <svg class="svgIcon tokenView-removeIcon" viewBox="0 0 32 32" title="remove">' +
           '    <polygon points="23.778,5.393 16,13.172 8.222,5.393 5.393,8.222 13.172,16 5.393,23.778 8.222,26.607 16,18.828 23.778,26.607 26.607,23.778 18.828,16 26.607,8.222"></polygon>' +
           '  </svg>' +
           '</a>');
-      $('#' + me.id + '_token_remove').mousedown(function(e) {
-        me.selected_user_id = null;
+      $('#' + me.gid + '_token_remove').mousedown(function(e) {
+        me.selected_user_gid = null;
         me._updateInput();
         me.input.focus();
       });
@@ -680,13 +680,13 @@ Asana.update(UserTypeahead.prototype, {
     var me = this;
     me.list.empty();
     me.filtered_users.forEach(function(user) {
-      me.list.append(me._entryForUser(user, user.id === me.selected_user_id));
+      me.list.append(me._entryForUser(user, user.gid === me.selected_user_gid));
     });
   },
 
   _entryForUser: function(user, is_selected) {
     var me = this;
-    var node = $('<div id="user_' + user.id + '" class="user"></div>');
+    var node = $('<div id="user_' + user.gid + '" class="user"></div>');
     node.append(UserTypeahead.photoForUser(user, 'inbox'));
     node.append($('<div class="user-name">').text(user.name));
     if (is_selected) {
@@ -695,21 +695,21 @@ Asana.update(UserTypeahead.prototype, {
 
     // Select on mouseover.
     node.mouseenter(function() {
-      me.setSelectedUserId(user.id);
+      me.setSelectedUserId(user.gid);
     });
 
     // Select and confirm on click. We listen to `mousedown` because a click
     // will take focus away from the input, hiding the user list and causing
     // us not to get the ensuing `click` event.
     node.mousedown(function() {
-      me.setSelectedUserId(user.id);
+      me.setSelectedUserId(user.gid);
       me._confirmSelection();
     });
     return node;
   },
 
   _confirmSelection: function() {
-    this.user_id_to_select = this.selected_user_id;
+    this.user_gid_to_select = this.selected_user_gid;
   },
 
   _updateUsers: function() {
@@ -718,14 +718,14 @@ Asana.update(UserTypeahead.prototype, {
     this._request_counter += 1;
     var current_request_counter = this._request_counter;
     Asana.ServerModel.userTypeahead(
-      Popup.options.default_workspace_id,
+      Popup.options.default_workspace_gid,
       this.input.val(),
       function (users) {
         // Only update the list if no future requests have been initiated.
         if (me._request_counter === current_request_counter) {
           // Update the ID -> User map.
           users.forEach(function (user) {
-            me.user_id_to_user[user.id] = user
+            me.user_gid_to_user[user.gid] = user;
           });
           // Insert new uers at the end.
           me.filtered_users = users;
@@ -736,7 +736,7 @@ Asana.update(UserTypeahead.prototype, {
 
   _indexOfSelectedUser: function() {
     var me = this;
-    var selected_user = me.user_id_to_user[me.selected_user_id];
+    var selected_user = me.user_gid_to_user[me.selected_user_gid];
     if (selected_user) {
       return me.filtered_users.indexOf(selected_user);
     } else {
@@ -759,7 +759,7 @@ Asana.update(UserTypeahead.prototype, {
 
   _updateInput: function() {
     var me = this;
-    var selected_user = me.user_id_to_user[me.selected_user_id];
+    var selected_user = me.user_gid_to_user[me.selected_user_gid];
     if (selected_user) {
       me.input.val(selected_user.name);
     } else {
@@ -767,13 +767,13 @@ Asana.update(UserTypeahead.prototype, {
     }
   },
 
-  setSelectedUserId: function(id) {
-    if (this.selected_user_id !== null) {
-      $("#user_" + this.selected_user_id).removeClass("selected");
+  setSelectedUserId: function(gid) {
+    if (this.selected_user_gid !== null) {
+      $("#user_" + this.selected_user_gid).removeClass("selected");
     }
-    this.selected_user_id = id;
-    if (this.selected_user_id !== null) {
-      $("#user_" + this.selected_user_id).addClass("selected");
+    this.selected_user_gid = gid;
+    if (this.selected_user_gid !== null) {
+      $("#user_" + this.selected_user_gid).addClass("selected");
     }
     this._updateInput();
   }

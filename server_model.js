@@ -68,8 +68,8 @@ Asana.ServerModel = {
     // We don't know what pot to view it in so we just use the task ID
     // and Asana will choose a suitable default.
     var options = Asana.Options.loadOptions();
-    var pot_id = task.id;
-    var url = 'https://' + options.asana_host_port + '/0/' + pot_id + '/' + task.id;
+    var pot_gid = task.gid;
+    var url = 'https://' + options.asana_host_port + '/0/' + pot_gid + '/' + task.gid;
     callback(url);
   },
 
@@ -93,14 +93,14 @@ Asana.ServerModel = {
    * @param callback {Function(users)} Callback on success.
    *     users {dict[]}
    */
-  users: function(workspace_id, callback, errback, options) {
+  users: function(workspace_gid, callback, errback, options) {
     var self = this;
     Asana.ApiBridge.request(
-        "GET", "/workspaces/" + workspace_id + "/users",
+        "GET", "/workspaces/" + workspace_gid + "/users",
         { opt_fields: "name,photo.image_60x60" },
         function(response) {
           response.forEach(function (user) {
-            self._updateUser(workspace_id, user);
+            self._updateUser(workspace_gid, user);
           });
           self._makeCallback(response, callback, errback);
         }, options);
@@ -126,11 +126,11 @@ Asana.ServerModel = {
    * @param task {dict} Task fields.
    * @param callback {Function(response)} Callback on success.
    */
-  createTask: function(workspace_id, task, callback, errback) {
+  createTask: function(workspace_gid, task, callback, errback) {
     var self = this;
     Asana.ApiBridge.request(
         "POST",
-        "/workspaces/" + workspace_id + "/tasks",
+        "/workspaces/" + workspace_gid + "/tasks",
         task,
         function(response) {
           self._makeCallback(response, callback, errback);
@@ -140,12 +140,12 @@ Asana.ServerModel = {
   /**
    * Requests user type-ahead completions for a query.
    */
-  userTypeahead: function(workspace_id, query, callback, errback) {
+  userTypeahead: function(workspace_gid, query, callback, errback) {
     var self = this;
 
     Asana.ApiBridge.request(
       "GET",
-      "/workspaces/" + workspace_id + "/typeahead",
+      "/workspaces/" + workspace_gid + "/typeahead",
       {
         type: 'user',
         query: query,
@@ -157,7 +157,7 @@ Asana.ServerModel = {
           response,
           function (users) {
             users.forEach(function (user) {
-              self._updateUser(workspace_id, user);
+              self._updateUser(workspace_gid, user);
             });
             callback(users);
           },
@@ -181,9 +181,9 @@ Asana.ServerModel = {
    */
   _known_users: {},
 
-  _updateUser: function(workspace_id, user) {
-    this._known_users[workspace_id] = this._known_users[workspace_id] || {}
-    this._known_users[workspace_id][user.id] = user;
+  _updateUser: function(workspace_gid, user) {
+    this._known_users[workspace_gid] = this._known_users[workspace_gid] || {};
+    this._known_users[workspace_gid][user.gid] = user;
     this._cacheUserPhoto(user);
   },
 
@@ -225,7 +225,7 @@ Asana.ServerModel = {
     me.me(function(user) {
       if (!user.errors) {
         // Fetch list of workspaces.
-        me.workspaces(function(workspaces) {}, null, { miss_cache: true })
+        me.workspaces(function(workspaces) {}, null, { miss_cache: true });
       }
     }, null, { miss_cache: true });
   }

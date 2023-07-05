@@ -17,10 +17,10 @@ var fillDomainsInBackground = function(opt_options) {
     $("#domains_group").html("");
     workspaces.forEach(function(domain) {
       $("#domains_group").append(
-          '<label><input name="default_domain_id" type="radio" id="default_domain_id-' +
-              domain.id + '" key="' + domain.id + '"/>' + domain.name + '</label><br/>');
+          '<label><input name="default_domain_gid" type="radio" id="default_domain_gid-' +
+              domain.gid + '" key="' + domain.gid + '"/>' + domain.name + '</label><br/>');
     });
-    var default_domain_element = $("#default_domain_id-" + options.default_domain_id);
+    var default_domain_element = $("#default_domain_gid-" + options.default_domain_gid);
     if (default_domain_element[0]) {
       default_domain_element.attr("checked", "checked");
     } else {
@@ -63,10 +63,10 @@ var resetOptions = function() {
 
 var saveOptions = function() {
   var asana_host_port = $("#asana_host_port_input").val();
-  var default_domain_input = $("input[@name='default_domain_id']:checked");
+  var default_domain_input = $("input[@name='default_domain_gid']:checked");
   Asana.Options.saveOptions({
     asana_host_port: asana_host_port,
-    default_domain_id: default_domain_input
+    default_domain_gid: default_domain_input
         ? default_domain_input.attr("key")
         : 0
   });

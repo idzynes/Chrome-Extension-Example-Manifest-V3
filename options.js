@@ -4,9 +4,9 @@
  *
  *     asana_host_port {String} host and (optional) port of the asana
  *         server to connect to.
- *     default_workspace_id {Integer} ID of the workspace that tasks should
+ *     default_workspace_gid {String} ID of the workspace that tasks should
  *         go into by default. The user will be allowed to choose a
- *         different option when adding a task. This is 0 if no default
+ *         different option when adding a task. This is "0" if no default
  *         workspace is selected.
  *
  * They are stored off in browser local storage for the extension as a
@@ -37,7 +37,7 @@ Asana.Options = {
   defaultOptions: function() {
     return {
       asana_host_port: "app.asana.com",
-      default_workspace_id: 0
+      default_workspace_gid: "0"
     };
   },
 
