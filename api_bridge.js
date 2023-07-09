@@ -14,7 +14,7 @@ Asana.ApiBridge = {
   /**
    * @type {String} Version of the Asana API to use.
    */
-  API_VERSION: "1.0",
+  API_VERSION: '1.0',
 
   /**
    * @type {Integer} How long an entry stays in the cache.
@@ -48,7 +48,7 @@ Asana.ApiBridge = {
   /**
    * Make a request to the Asana API.
    *
-   * @param http_method {String} HTTP request method to use (e.g. "POST")
+   * @param http_method {String} HTTP request method to use (e.g. 'POST')
    * @param path {String} Path to call.
    * @param params {dict} Parameters for API method; depends on method.
    * @param callback {Function(response: dict)} Callback on completion.
@@ -66,9 +66,9 @@ Asana.ApiBridge = {
     // If we're not the server page, send a message to it to make the
     // API request.
     if (!me.is_server) {
-      console.info("Client API Request", http_method, path, params);
+      console.info('Client API Request', http_method, path, params);
       chrome.runtime.sendMessage({
-        type: "api",
+        type: 'api',
         method: http_method,
         path: path,
         params: params,
@@ -77,13 +77,13 @@ Asana.ApiBridge = {
       return;
     }
 
-    console.info("Server API Request", http_method, path, params);
+    console.info('Server API Request', http_method, path, params);
 
     // Serve from cache first.
-    if (!options.miss_cache && http_method === "GET") {
+    if (!options.miss_cache && http_method === 'GET') {
       var data = me._readCache(path, new Date());
       if (data) {
-        console.log("Serving request from cache", path);
+        console.log('Serving request from cache', path);
         callback(data);
         return;
       }
@@ -92,15 +92,15 @@ Asana.ApiBridge = {
     // Be polite to Asana API and tell them who we are.
     var manifest = chrome.runtime.getManifest();
     var client_name = [
-      "chrome-extension",
-      chrome.i18n.getMessage("@@extension_id"),
+      'chrome-extension',
+      chrome.i18n.getMessage('@@extension_id'),
       manifest.version,
       manifest.name
-    ].join(":");
+    ].join(':');
 
     var url = me.baseApiUrl() + path;
     var body_data;
-    if (http_method === "PUT" || http_method === "POST") {
+    if (http_method === 'PUT' || http_method === 'POST') {
       // POST/PUT request, put params in body
       body_data = {
         data: params,
@@ -109,10 +109,10 @@ Asana.ApiBridge = {
     } else {
       // GET/DELETE request, add params as URL parameters.
       var url_params = Asana.update({ opt_client_name: client_name }, params);
-      url += "?" + $.param(url_params);
+      url += '?' + $.param(url_params);
     }
 
-    console.log("Making request to API", http_method, url);
+    console.log('Making request to API', http_method, url);
 
     chrome.cookies.get({
       url: url,
@@ -121,7 +121,7 @@ Asana.ApiBridge = {
       if (!cookie) {
         callback({
           status: 401,
-          error: "Not Authorized"
+          error: 'Not Authorized'
         });
         return;
       }
@@ -133,12 +133,12 @@ Asana.ApiBridge = {
         url: url,
         timeout: 30000,   // 30 second timeout
         headers: {
-          "X-Requested-With": "XMLHttpRequest",
-          "X-Allow-Asana-Client": "1"
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-Allow-Asana-Client': '1'
         },
-        accept: "application/json",
+        accept: 'application/json',
         success: function(data, status, xhr) {
-          if (http_method === "GET") {
+          if (http_method === 'GET') {
             me._writeCache(path, data, new Date());
           }
           callback(data);
@@ -147,13 +147,13 @@ Asana.ApiBridge = {
           // jQuery's ajax() method has some rather funky error-handling.
           // We try to accommodate that and normalize so that all types of
           // errors look the same.
-          if (status === "error" && xhr.responseText) {
+          if (status === 'error' && xhr.responseText) {
             var response;
             try {
               response = $.parseJSON(xhr.responseText);
             } catch (e) {
               response = {
-                errors: [{message: "Could not parse response from server" }]
+                errors: [{message: 'Could not parse response from server' }]
               };
             }
             callback(response);
@@ -165,11 +165,11 @@ Asana.ApiBridge = {
           withCredentials: true
         }
       };
-      if (http_method === "POST" || http_method === "PUT") {
+      if (http_method === 'POST' || http_method === 'PUT') {
         attrs.data = JSON.stringify(body_data);
-        attrs.dataType = "json";
+        attrs.dataType = 'json';
         attrs.processData = false;
-        attrs.contentType = "application/json";
+        attrs.contentType = 'application/json';
       }
       $.ajax(attrs);
     });

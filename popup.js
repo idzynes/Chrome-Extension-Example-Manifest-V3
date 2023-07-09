@@ -33,7 +33,7 @@ Popup = {
   onLoad: function() {
     var me = this;
 
-    me.is_external = ('' + window.location.search).indexOf("external=true") !== -1;
+    me.is_external = ('' + window.location.search).indexOf('external=true') !== -1;
 
     // Our default error handler.
     Asana.ServerModel.onError = function(response) {
@@ -57,7 +57,7 @@ Popup = {
           if (is_logged_in) {
             if (window.quick_add_request) {
               Asana.ServerModel.logEvent({
-                name: "ChromeExtension-Open-QuickAdd"
+                name: 'ChromeExtension-Open-QuickAdd'
               });
               // If this was a QuickAdd request (set by the code popping up
               // the window in Asana.ExtensionServer), then we have all the
@@ -68,18 +68,18 @@ Popup = {
                   quick_add_request.favicon_url);
             } else {
               Asana.ServerModel.logEvent({
-                name: "ChromeExtension-Open-Button"
+                name: 'ChromeExtension-Open-Button'
               });
               // Otherwise we want to get the selection from the tab that
               // was active when we were opened. So we set up a listener
               // to listen for the selection send event from the content
               // window ...
-              var selection = "";
+              var selection = '';
               var listener = function(request, sender, sendResponse) {
-                if (request.type === "selection") {
+                if (request.type === 'selection') {
                   chrome.runtime.onMessage.removeListener(listener);
-                  console.info("Asana popup got selection");
-                  selection = "\n" + request.value;
+                  console.info('Asana popup got selection');
+                  selection = '\n' + request.value;
                 }
               };
               chrome.runtime.onMessage.addListener(listener);
@@ -102,7 +102,7 @@ Popup = {
       if (e.which === 27) {
         if (me.is_first_add) {
           Asana.ServerModel.logEvent({
-            name: "ChromeExtension-Abort"
+            name: 'ChromeExtension-Abort'
           });
         }
         window.close();
@@ -121,29 +121,29 @@ Popup = {
     });
 
     // Close if the X is clicked.
-    $(".close-x").click(function() {
+    $('.close-x').click(function() {
       if (me.is_first_add) {
         Asana.ServerModel.logEvent({
-          name: "ChromeExtension-Abort"
+          name: 'ChromeExtension-Abort'
         });
       }
       window.close();
     });
 
-    $("#name_input").keyup(function() {
-      if (!me.has_edited_name && $("#name_input").val() !== "") {
+    $('#name_input').keyup(function() {
+      if (!me.has_edited_name && $('#name_input').val() !== '') {
         me.has_edited_name = true;
         Asana.ServerModel.logEvent({
-          name: "ChromeExtension-ChangedTaskName"
+          name: 'ChromeExtension-ChangedTaskName'
         });
       }
       me.maybeDisablePageDetailsButton();
     });
-    $("#notes_input").keyup(function() {
-      if (!me.has_edited_notes && $("#notes_input").val() !== "") {
+    $('#notes_input').keyup(function() {
+      if (!me.has_edited_notes && $('#notes_input').val() !== '') {
         me.has_edited_notes= true;
         Asana.ServerModel.logEvent({
-          name: "ChromeExtension-ChangedTaskNotes"
+          name: 'ChromeExtension-ChangedTaskNotes'
         });
       }
       me.maybeDisablePageDetailsButton();
@@ -151,34 +151,34 @@ Popup = {
 
     // The page details button fills in fields with details from the page
     // in the current tab (cached when the popup opened).
-    var use_page_details_button = $("#use_page_details");
+    var use_page_details_button = $('#use_page_details');
     use_page_details_button.click(function() {
       if (!(use_page_details_button.hasClass('disabled'))) {
         // Page title -> task name
-        $("#name_input").val(me.page_title);
+        $('#name_input').val(me.page_title);
         // Page url + selection -> task notes
-        var notes = $("#notes_input");
-        notes.val(notes.val() + me.page_url + "\n" + me.page_selection);
+        var notes = $('#notes_input');
+        notes.val(notes.val() + me.page_url + '\n' + me.page_selection);
         // Disable the page details button once used.        
         use_page_details_button.addClass('disabled');
         if (!me.has_used_page_details) {
           me.has_used_page_details = true;
           Asana.ServerModel.logEvent({
-            name: "ChromeExtension-UsedPageDetails"
+            name: 'ChromeExtension-UsedPageDetails'
           });
         }
       }
     });
 
     // Make a typeahead for assignee
-    me.typeahead = new UserTypeahead("assignee");
+    me.typeahead = new UserTypeahead('assignee');
   },
 
   maybeDisablePageDetailsButton: function() {
-    if ($("#name_input").val() !== "" || $("#notes_input").val() !== "") {
-      $("#use_page_details").addClass('disabled');
+    if ($('#name_input').val() !== '' || $('#notes_input').val() !== '') {
+      $('#use_page_details').addClass('disabled');
     } else {
-      $("#use_page_details").removeClass('disabled');
+      $('#use_page_details').removeClass('disabled');
     }
   },
 
@@ -192,8 +192,8 @@ Popup = {
   },
 
   showView: function(name) {
-    ["login", "add"].forEach(function(view_name) {
-      $("#" + view_name + "_view").css("display", view_name === name ? "" : "none");
+    ['login', 'add'].forEach(function(view_name) {
+      $('#' + view_name + '_view').css('display', view_name === name ? '' : 'none');
     });
   },
 
@@ -211,23 +211,23 @@ Popup = {
       me.user_gid = user.gid;
       Asana.ServerModel.workspaces(function(workspaces) {
         me.workspaces = workspaces;
-        var select = $("#workspace_select");
-        select.html("");
+        var select = $('#workspace_select');
+        select.html('');
         workspaces.forEach(function(workspace) {
-          $("#workspace_select").append(
-              "<option value='" + workspace.gid + "'>" + workspace.name + "</option>");
+          $('#workspace_select').append(
+              '<option value="' + workspace.gid + '"">' + workspace.name + '</option>');
         });
         if (workspaces.length > 1) {
-          $("workspace_select_container").show();
+          $('workspace_select_container').show();
         } else {
-          $("workspace_select_container").hide();
+          $('workspace_select_container').hide();
         }
         select.val(me.options.default_workspace_gid);
         me.onWorkspaceChanged();
         select.change(function() {
           if (select.val() !== me.options.default_workspace_gid) {
             Asana.ServerModel.logEvent({
-              name: "ChromeExtension-ChangedWorkspace"
+              name: 'ChromeExtension-ChangedWorkspace'
             });
           }
           me.onWorkspaceChanged();
@@ -235,15 +235,15 @@ Popup = {
 
         // Set initial UI state
         me.resetFields();
-        me.showView("add");
-        var name_input = $("#name_input");
+        me.showView('add');
+        var name_input = $('#name_input');
         name_input.focus();
         name_input.select();
 
         if (favicon_url) {
-          $(".icon-use-link").css("background-image", "url(" + favicon_url + ")");
+          $('.icon-use-link').css('background-image', 'url(' + favicon_url + ')');
         } else {
-          $(".icon-use-link").addClass("no-favicon sprite");
+          $('.icon-use-link').addClass('no-favicon sprite');
         }
       });
     });
@@ -254,12 +254,12 @@ Popup = {
    */
   setAddEnabled: function(enabled) {
     var me = this;
-    var button = $("#add_button");
+    var button = $('#add_button');
     if (enabled) {
       // Update appearance and add handlers.
-      button.removeClass("is-disabled");
-      button.unbind("click");
-      button.unbind("keydown");
+      button.removeClass('is-disabled');
+      button.unbind('click');
+      button.unbind('keydown');
       button.click(function() {
         me.createTask();
         return false;
@@ -271,38 +271,38 @@ Popup = {
       });
     } else {
       // Update appearance and remove handlers.
-      button.addClass("is-disabled");
-      button.unbind("click");
-      button.unbind("keydown");
+      button.addClass('is-disabled');
+      button.unbind('click');
+      button.unbind('keydown');
     }
   },
 
   showError: function(message) {
-    console.log("Error: " + message);
-    $("#error").css("display", "inline-block");
+    console.log('Error: ' + message);
+    $('#error').css('display', 'inline-block');
   },
 
   hideError: function() {
-    $("#error").css("display", "none");
+    $('#error').css('display', 'none');
   },
 
   /**
    * Clear inputs for new task entry.
    */
   resetFields: function() {
-    $("#name_input").val("");
-    $("#notes_input").val("");
+    $('#name_input').val('');
+    $('#notes_input').val('');
     this.typeahead.setSelectedUserId(this.user_gid);
   },
 
   /**
-   * Set the add button as being "working", waiting for the Asana request
+   * Set the add button as being 'working', waiting for the Asana request
    * to complete.
    */
   setAddWorking: function(working) {
     this.setAddEnabled(!working);
-    $("#add_button").find(".button-text").text(
-        working ? "Adding..." : "Add to Asana");
+    $('#add_button').find('.button-text').text(
+        working ? 'Adding...' : 'Add to Asana');
   },
 
   /**
@@ -313,7 +313,7 @@ Popup = {
     var workspace_gid = me.selectedWorkspaceId();
 
     // Update selected workspace
-    $("#workspace").html($("#workspace_select option:selected").text());
+    $('#workspace').html($('#workspace_select option:selected').text());
 
     // Save selection as new default.
     Popup.options.default_workspace_gid = workspace_gid;
@@ -340,7 +340,7 @@ Popup = {
    * @return {String} ID of the selected workspace.
    */
   selectedWorkspaceId: function() {
-    return $("#workspace_select").val();
+    return $('#workspace_select').val();
   },
 
   /**
@@ -350,38 +350,38 @@ Popup = {
     var me = this;
 
     // Update UI to reflect attempt to create task.
-    console.info("Creating task");
+    console.info('Creating task');
     me.hideError();
     me.setAddWorking(true);
 
     if (!me.is_first_add) {
       Asana.ServerModel.logEvent({
-        name: "ChromeExtension-CreateTask-MultipleTasks"
+        name: 'ChromeExtension-CreateTask-MultipleTasks'
       });
     }
 
     Asana.ServerModel.createTask(
         me.selectedWorkspaceId(),
         {
-          name: $("#name_input").val(),
-          notes: $("#notes_input").val(),
+          name: $('#name_input').val(),
+          notes: $('#notes_input').val(),
           // Default assignee to self
           assignee: me.typeahead.selected_user_gid || me.user_gid
         },
         function(task) {
           // Success! Show task success, then get ready for another input.
           Asana.ServerModel.logEvent({
-            name: "ChromeExtension-CreateTask-Success"
+            name: 'ChromeExtension-CreateTask-Success'
           });
           me.setAddWorking(false);
           me.showSuccess(task);
           me.resetFields();
-          $("#name_input").focus();
+          $('#name_input').focus();
         },
         function(response) {
           // Failure. :( Show error, but leave form available for retry.
           Asana.ServerModel.logEvent({
-            name: "ChromeExtension-CreateTask-Failure"
+            name: 'ChromeExtension-CreateTask-Failure'
           });
           me.setAddWorking(false);
           me.showError(response.errors[0].message);
@@ -394,11 +394,11 @@ Popup = {
   showSuccess: function(task) {
     var me = this;
     Asana.ServerModel.taskViewUrl(task, function(url) {
-      var name = task.name.replace(/^\s*/, "").replace(/\s*$/, "");
-      var link = $("#new_task_link");
-      link.attr("href", url);
-      link.text(name !== "" ? name : "Task");
-      link.unbind("click");
+      var name = task.name.replace(/^\s*/, '').replace(/\s*$/, '');
+      var link = $('#new_task_link');
+      link.attr('href', url);
+      link.text(name !== '' ? name : 'Task');
+      link.unbind('click');
       link.click(function() {
         chrome.tabs.create({url: url});
         window.close();
@@ -411,7 +411,7 @@ Popup = {
       me.has_reassigned = true;
       me.is_first_add = false;
 
-      $("#success").css("display", "inline-block");
+      $('#success').css('display', 'inline-block');
     });
   },
 
@@ -420,25 +420,25 @@ Popup = {
    */
   showLogin: function(login_url, signup_url) {
     var me = this;
-    $("#login_button").click(function() {
+    $('#login_button').click(function() {
       chrome.tabs.create({url: login_url});
       window.close();
       return false;
     });
-    $("#signup_button").click(function() {
+    $('#signup_button').click(function() {
       chrome.tabs.create({url: signup_url});
       window.close();
       return false;
     });
-    me.showView("login");
+    me.showView('login');
   },
 
   firstInput: function() {
-    return $("#workspace_select");
+    return $('#workspace_select');
   },
 
   lastInput: function() {
-    return $("#add_button");
+    return $('#add_button');
   }
 };
 
@@ -472,11 +472,11 @@ UserTypeahead = function(gid) {
   me._request_counter = 0;
 
   // Store off UI elements.
-  me.input = $("#" + gid + "_input");
-  me.token_area = $("#" + gid + "_token_area");
-  me.token = $("#" + gid + "_token");
-  me.list = $("#" + gid + "_list");
-  me.list_container = $("#" + gid + "_list_container");
+  me.input = $('#' + gid + '_input');
+  me.token_area = $('#' + gid + '_token_area');
+  me.token = $('#' + gid + '_token');
+  me.list = $('#' + gid + '_list');
+  me.list_container = $('#' + gid + '_list_container');
 
   // Open on focus.
   me.input.focus(function() {
@@ -488,10 +488,10 @@ UserTypeahead = function(gid) {
         var assignee_name = me.user_gid_to_user[me.selected_user_gid].name;
         me.input.val(assignee_name);
       } else {
-        me.input.val("");
+        me.input.val('');
       }
     } else {
-      me.input.val("");
+      me.input.val('');
     }
     me.has_focus = true;
     Popup.setExpandedUi(true);
@@ -511,8 +511,8 @@ UserTypeahead = function(gid) {
       Popup.has_reassigned = true;
       Asana.ServerModel.logEvent({
         name: (me.selected_user_gid === Popup.user_gid || me.selected_user_gid === null) ?
-            "ChromeExtension-AssignToSelf" :
-            "ChromeExtension-AssignToOther"
+            'ChromeExtension-AssignToSelf' :
+            'ChromeExtension-AssignToOther'
       });
     }
     me.render();
@@ -525,7 +525,7 @@ UserTypeahead = function(gid) {
     if (e.which === 13) {
       // Enter accepts selection, focuses next UI element.
       me._confirmSelection();
-      $("#add_button").focus();
+      $('#add_button').focus();
       return false;
     } else if (e.which === 9) {
       // Tab accepts selection. Browser default behavior focuses next element.
@@ -559,7 +559,7 @@ UserTypeahead = function(gid) {
   });
 
   // When the input changes value, update and re-render our filtered list.
-  me.input.bind("input", function() {
+  me.input.bind('input', function() {
     me._updateUsers();
     me._renderList();
   });
@@ -576,7 +576,7 @@ UserTypeahead = function(gid) {
 
 Asana.update(UserTypeahead, {
 
-  SILHOUETTE_URL: "./images/nopicture.png",
+  SILHOUETTE_URL: './images/nopicture.png',
 
   /**
    * @param user {dict}
@@ -586,7 +586,7 @@ Asana.update(UserTypeahead, {
   photoForUser: function(user, size) {
     var photo = $('<div class="Avatar Avatar--' + size + '">');
     var url = user.photo ? user.photo.image_60x60 : UserTypeahead.SILHOUETTE_URL;
-    photo.css("background-image", "url(" + url + ")");
+    photo.css('background-image', 'url(' + url + ')');
     return $('<div class="photo-view ' + size + ' tokenView-photo">').append(photo);
   }
 
@@ -690,7 +690,7 @@ Asana.update(UserTypeahead.prototype, {
     node.append(UserTypeahead.photoForUser(user, 'inbox'));
     node.append($('<div class="user-name">').text(user.name));
     if (is_selected) {
-      node.addClass("selected");
+      node.addClass('selected');
     }
 
     // Select on mouseover.
@@ -763,17 +763,17 @@ Asana.update(UserTypeahead.prototype, {
     if (selected_user) {
       me.input.val(selected_user.name);
     } else {
-      me.input.val("");
+      me.input.val('');
     }
   },
 
   setSelectedUserId: function(gid) {
     if (this.selected_user_gid !== null) {
-      $("#user_" + this.selected_user_gid).removeClass("selected");
+      $('#user_' + this.selected_user_gid).removeClass('selected');
     }
     this.selected_user_gid = gid;
     if (this.selected_user_gid !== null) {
-      $("#user_" + this.selected_user_gid).addClass("selected");
+      $('#user_' + this.selected_user_gid).addClass('selected');
     }
     this._updateInput();
   }

@@ -36,8 +36,8 @@ Asana.Options = {
    */
   defaultOptions: function() {
     return {
-      asana_host_port: "app.asana.com",
-      default_workspace_gid: "0"
+      asana_host_port: 'app.asana.com',
+      default_workspace_gid: '0'
     };
   },
 

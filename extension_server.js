@@ -16,7 +16,7 @@ Asana.ExtensionServer = {
     Asana.ApiBridge.is_server = true;
 
     chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-      if (request.type === "api") {
+      if (request.type === 'api') {
         // Request to the API. Pass it on to the bridge.
         Asana.ApiBridge.request(
             request.method, request.path, request.params, sendResponse,

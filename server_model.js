@@ -81,7 +81,7 @@ Asana.ServerModel = {
    */
   workspaces: function(callback, errback, options) {
     var self = this;
-    Asana.ApiBridge.request("GET", "/workspaces", {},
+    Asana.ApiBridge.request('GET', '/workspaces', {},
         function(response) {
           self._makeCallback(response, callback, errback);
         }, options);
@@ -96,8 +96,8 @@ Asana.ServerModel = {
   users: function(workspace_gid, callback, errback, options) {
     var self = this;
     Asana.ApiBridge.request(
-        "GET", "/workspaces/" + workspace_gid + "/users",
-        { opt_fields: "name,photo.image_60x60" },
+        'GET', '/workspaces/' + workspace_gid + '/users',
+        { opt_fields: 'name,photo.image_60x60' },
         function(response) {
           response.forEach(function (user) {
             self._updateUser(workspace_gid, user);
@@ -114,7 +114,7 @@ Asana.ServerModel = {
    */
   me: function(callback, errback, options) {
     var self = this;
-    Asana.ApiBridge.request("GET", "/users/me", {},
+    Asana.ApiBridge.request('GET', '/users/me', {},
         function(response) {
           self._makeCallback(response, callback, errback);
         }, options);
@@ -129,8 +129,8 @@ Asana.ServerModel = {
   createTask: function(workspace_gid, task, callback, errback) {
     var self = this;
     Asana.ApiBridge.request(
-        "POST",
-        "/workspaces/" + workspace_gid + "/tasks",
+        'POST',
+        '/workspaces/' + workspace_gid + '/tasks',
         task,
         function(response) {
           self._makeCallback(response, callback, errback);
@@ -144,13 +144,13 @@ Asana.ServerModel = {
     var self = this;
 
     Asana.ApiBridge.request(
-      "GET",
-      "/workspaces/" + workspace_gid + "/typeahead",
+      'GET',
+      '/workspaces/' + workspace_gid + '/typeahead',
       {
         type: 'user',
         query: query,
         count: 10,
-        opt_fields: "name,photo.image_60x60",
+        opt_fields: 'name,photo.image_60x60',
       },
       function(response) {
         self._makeCallback(
@@ -170,8 +170,8 @@ Asana.ServerModel = {
 
   logEvent: function(event) {
     Asana.ApiBridge.request(
-        "POST",
-        "/logs",
+        'POST',
+        '/logs',
         event,
         function(response) {});
   },
