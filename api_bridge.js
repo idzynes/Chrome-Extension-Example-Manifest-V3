@@ -129,49 +129,43 @@ Asana.ApiBridge = {
       // Note that any URL fetched here must be matched by a permission in
       // the manifest.json file!
       var attrs = {
-        type: http_method,
-        url: url,
+        method: http_method,
         timeout: 30000,   // 30 second timeout
         headers: {
-          'X-Requested-With': 'XMLHttpRequest',
+          'Content-Type': 'application/json',
           'X-Allow-Asana-Client': '1'
-        },
-        accept: 'application/json',
-        success: function(data, status, xhr) {
-          if (http_method === 'GET') {
-            me._writeCache(path, data, new Date());
-          }
-          callback(data);
-        },
-        error: function(xhr, status, error) {
-          // jQuery's ajax() method has some rather funky error-handling.
-          // We try to accommodate that and normalize so that all types of
-          // errors look the same.
-          if (status === 'error' && xhr.responseText) {
-            var response;
-            try {
-              response = $.parseJSON(xhr.responseText);
-            } catch (e) {
-              response = {
-                errors: [{message: 'Could not parse response from server' }]
-              };
-            }
-            callback(response);
-          } else {
-            callback({ errors: [{message: error || status }]});
-          }
-        },
-        xhrFields: {
-          withCredentials: true
         }
       };
       if (http_method === 'POST' || http_method === 'PUT') {
-        attrs.data = JSON.stringify(body_data);
+        attrs.body = JSON.stringify(body_data);
         attrs.dataType = 'json';
         attrs.processData = false;
-        attrs.contentType = 'application/json';
       }
-      $.ajax(attrs);
+
+      fetch(url, attrs)
+      .then(response => {
+        if (!response.ok) {
+          console.log('Response not ok', response.json());
+        }
+        return response.json();
+      })
+      .then(responseJson => {
+        if (http_method === 'GET') {
+          me._writeCache(responseJson.path, responseJson.data, new Date());
+        }
+        console.log('Successful response', responseJson);
+        callback(responseJson);
+      })
+      .catch(response => {
+        console.log('Failed response', response);
+        try {
+          callback(response.json());
+        } catch (e) {
+          callback({errors: [{message: 'Could not parse response from server' }]});
+        }
+      });
+      return true;
+
     });
   },
 
