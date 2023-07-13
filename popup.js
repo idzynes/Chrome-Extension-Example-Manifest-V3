@@ -97,7 +97,7 @@ Popup = {
 
     // Wire up some events to DOM elements on the page.
 
-    $(window).keydown(function(e) {
+    window.addEventListener('keydown', function(e) {
       // Close the popup if the ESCAPE key is pressed.
       if (e.which === 27) {
         if (me.is_first_add) {
@@ -110,10 +110,10 @@ Popup = {
         // Don't let ourselves TAB to focus the document body, so if we're
         // at the beginning or end of the tab ring, explicitly focus the
         // other end (setting body.tabindex = -1 does not prevent this)
-        if (e.shiftKey && document.activeElement === me.firstInput().get(0)) {
+        if (e.shiftKey && document.activeElement === me.firstInput()[0]) {
           me.lastInput().focus();
           e.preventDefault();
-        } else if (!e.shiftKey && document.activeElement === me.lastInput().get(0)) {
+        } else if (!e.shiftKey && document.activeElement === me.lastInput()[0]) {
           me.firstInput().focus();
           e.preventDefault();
         }
@@ -121,17 +121,19 @@ Popup = {
     });
 
     // Close if the X is clicked.
-    $('.close-x').click(function() {
-      if (me.is_first_add) {
-        Asana.ServerModel.logEvent({
-          name: 'ChromeExtension-Abort'
-        });
-      }
-      window.close();
-    });
+    $$('.close-x').forEach(el => el.addEventListener(
+      'click', function() {
+        if (me.is_first_add) {
+          Asana.ServerModel.logEvent({
+            name: 'ChromeExtension-Abort'
+          });
+        }
+        window.close();
+      })
+    );
 
-    $('#name_input').keyup(function() {
-      if (!me.has_edited_name && $('#name_input').val() !== '') {
+    $('#name_input').addEventListener('keyup', function() {
+      if (!me.has_edited_name && $('#name_input').value !== '') {
         me.has_edited_name = true;
         Asana.ServerModel.logEvent({
           name: 'ChromeExtension-ChangedTaskName'
@@ -139,8 +141,8 @@ Popup = {
       }
       me.maybeDisablePageDetailsButton();
     });
-    $('#notes_input').keyup(function() {
-      if (!me.has_edited_notes && $('#notes_input').val() !== '') {
+    $('#notes_input').addEventListener('keyup', function() {
+      if (!me.has_edited_notes && $('#notes_input').value !== '') {
         me.has_edited_notes= true;
         Asana.ServerModel.logEvent({
           name: 'ChromeExtension-ChangedTaskNotes'
@@ -152,15 +154,15 @@ Popup = {
     // The page details button fills in fields with details from the page
     // in the current tab (cached when the popup opened).
     var use_page_details_button = $('#use_page_details');
-    use_page_details_button.click(function() {
-      if (!(use_page_details_button.hasClass('disabled'))) {
+    use_page_details_button.addEventListener('click', function() {
+      if (!(use_page_details_button.classList.contains('disabled'))) {
         // Page title -> task name
-        $('#name_input').val(me.page_title);
+        $('#name_input').value = me.page_title;
         // Page url + selection -> task notes
         var notes = $('#notes_input');
-        notes.val(notes.val() + me.page_url + '\n' + me.page_selection);
+        notes.value = notes.value + me.page_url + '\n' + me.page_selection;
         // Disable the page details button once used.        
-        use_page_details_button.addClass('disabled');
+        use_page_details_button.classList.add('disabled');
         if (!me.has_used_page_details) {
           me.has_used_page_details = true;
           Asana.ServerModel.logEvent({
@@ -169,16 +171,15 @@ Popup = {
         }
       }
     });
-
     // Make a typeahead for assignee
     me.typeahead = new UserTypeahead('assignee');
   },
 
   maybeDisablePageDetailsButton: function() {
-    if ($('#name_input').val() !== '' || $('#notes_input').val() !== '') {
-      $('#use_page_details').addClass('disabled');
+    if ($('#name_input').value !== '' || $('#notes_input').value !== '') {
+      $('#use_page_details').classList.add('disabled');
     } else {
-      $('#use_page_details').removeClass('disabled');
+      $('#use_page_details').classList.remove('disabled');
     }
   },
 
@@ -193,7 +194,7 @@ Popup = {
 
   showView: function(name) {
     ['login', 'add'].forEach(function(view_name) {
-      $('#' + view_name + '_view').css('display', view_name === name ? '' : 'none');
+      $('#' + view_name + '_view').style.display = view_name === name ? '' : 'none';
     });
   },
 
@@ -212,20 +213,22 @@ Popup = {
       Asana.ServerModel.workspaces(function(workspaces) {
         me.workspaces = workspaces;
         var select = $('#workspace_select');
-        select.html('');
+        select.innerHTML = '';
         workspaces.forEach(function(workspace) {
-          $('#workspace_select').append(
-              '<option value="' + workspace.gid + '"">' + workspace.name + '</option>');
+          var workspaceOption = document.createElement('option');
+          workspaceOption.value = workspace.gid;
+          workspaceOption.textContent = workspace.name;
+          $('#workspace_select').append(workspaceOption);
         });
         if (workspaces.length > 1) {
-          $('workspace_select_container').show();
+          $('#workspace_select_container').style.display = '';
         } else {
-          $('workspace_select_container').hide();
+          $('#workspace_select_container').style.display = 'none';
         }
-        select.val(me.options.default_workspace_gid);
+        select.value = me.options.default_workspace_gid;
         me.onWorkspaceChanged();
-        select.change(function() {
-          if (select.val() !== me.options.default_workspace_gid) {
+        select.addEventListener('change', function() {
+          if (select.value !== me.options.default_workspace_gid) {
             Asana.ServerModel.logEvent({
               name: 'ChromeExtension-ChangedWorkspace'
             });
@@ -241,9 +244,9 @@ Popup = {
         name_input.select();
 
         if (favicon_url) {
-          $('.icon-use-link').css('background-image', 'url(' + favicon_url + ')');
+          $$('.icon-use-link').forEach(el => el.style.backgroundImage = 'url(' + favicon_url + ')');
         } else {
-          $('.icon-use-link').addClass('no-favicon sprite');
+          $$('.icon-use-link').forEach(el => el.classList.add('no-favicon', 'sprite'));
         }
       });
     });
@@ -255,43 +258,45 @@ Popup = {
   setAddEnabled: function(enabled) {
     var me = this;
     var button = $('#add_button');
+    var createTaskOnClick = function() {
+      me.createTask();
+      return false;
+    };
+    var createTaskWithEnter = function(e) {
+      if (e.keyCode === 13) {
+        me.createTask();
+      }
+    };
     if (enabled) {
       // Update appearance and add handlers.
-      button.removeClass('is-disabled');
-      button.unbind('click');
-      button.unbind('keydown');
-      button.click(function() {
-        me.createTask();
-        return false;
-      });
-      button.keydown(function(e) {
-        if (e.keyCode === 13) {
-          me.createTask();
-        }
-      });
+      button.classList.remove('is-disabled');
+      button.removeEventListener('click', createTaskOnClick);
+      button.removeEventListener('keydown', createTaskWithEnter);
+      button.addEventListener('click', createTaskOnClick);
+      button.addEventListener('keydown', createTaskWithEnter);
     } else {
       // Update appearance and remove handlers.
-      button.addClass('is-disabled');
-      button.unbind('click');
-      button.unbind('keydown');
+      button.classList.add('is-disabled');
+      button.removeEventListener('click', createTaskOnClick);
+      button.removeEventListener('keydown', createTaskWithEnter);
     }
   },
 
   showError: function(message) {
     console.log('Error: ' + message);
-    $('#error').css('display', 'inline-block');
+    $('#error').style.display = 'inline-block';
   },
 
   hideError: function() {
-    $('#error').css('display', 'none');
+    $('#error').style.display = 'none';
   },
 
   /**
    * Clear inputs for new task entry.
    */
   resetFields: function() {
-    $('#name_input').val('');
-    $('#notes_input').val('');
+    $('#name_input').value = '';
+    $('#notes_input').value = '';
     this.typeahead.setSelectedUserId(this.user_gid);
   },
 
@@ -301,8 +306,8 @@ Popup = {
    */
   setAddWorking: function(working) {
     this.setAddEnabled(!working);
-    $('#add_button').find('.button-text').text(
-        working ? 'Adding...' : 'Add to Asana');
+    $('#add_button .new-button-text').textContent =
+        working ? 'Adding...' : 'Add to Asana';
   },
 
   /**
@@ -313,7 +318,8 @@ Popup = {
     var workspace_gid = me.selectedWorkspaceId();
 
     // Update selected workspace
-    $('#workspace').html($('#workspace_select option:selected').text());
+    console.log($('#workspace_select'));
+    $('#workspace').innerHTML = ($('#workspace_select option:checked')).textContent;
 
     // Save selection as new default.
     Popup.options.default_workspace_gid = workspace_gid;
@@ -340,7 +346,7 @@ Popup = {
    * @return {String} ID of the selected workspace.
    */
   selectedWorkspaceId: function() {
-    return $('#workspace_select').val();
+    return $('#workspace_select').value;
   },
 
   /**
@@ -363,8 +369,8 @@ Popup = {
     Asana.ServerModel.createTask(
         me.selectedWorkspaceId(),
         {
-          name: $('#name_input').val(),
-          notes: $('#notes_input').val(),
+          name: $('#name_input').value,
+          notes: $('#notes_input').value,
           // Default assignee to self
           assignee: me.typeahead.selected_user_gid || me.user_gid
         },
@@ -396,14 +402,15 @@ Popup = {
     Asana.ServerModel.taskViewUrl(task, function(url) {
       var name = task.name.replace(/^\s*/, '').replace(/\s*$/, '');
       var link = $('#new_task_link');
-      link.attr('href', url);
-      link.text(name !== '' ? name : 'Task');
-      link.unbind('click');
-      link.click(function() {
+      link.href = url;
+      link.textContent = name !== '' ? name : 'Task';
+      var openCreatedTaskOnClick = function() {
         chrome.tabs.create({url: url});
         window.close();
         return false;
-      });
+      };
+      link.removeEventListener('click', openCreatedTaskOnClick);
+      link.addEventListener('click', openCreatedTaskOnClick);
 
       // Reset logging for multi-add
       me.has_edited_name = true;
@@ -411,7 +418,7 @@ Popup = {
       me.has_reassigned = true;
       me.is_first_add = false;
 
-      $('#success').css('display', 'inline-block');
+      $('#success').style.display = 'inline-block';
     });
   },
 
@@ -420,16 +427,16 @@ Popup = {
    */
   showLogin: function(login_url, signup_url) {
     var me = this;
-    $('#login_button').click(function() {
+    $('#login_button').addEventListener('click', (function() {
       chrome.tabs.create({url: login_url});
       window.close();
       return false;
-    });
-    $('#signup_button').click(function() {
+    }));
+    $('#signup_button').addEventListener('click', (function() {
       chrome.tabs.create({url: signup_url});
       window.close();
       return false;
-    });
+    }));
     me.showView('login');
   },
 
@@ -479,32 +486,32 @@ UserTypeahead = function(gid) {
   me.list_container = $('#' + gid + '_list_container');
 
   // Open on focus.
-  me.input.focus(function() {
+  me.input.addEventListener('focus', function() {
     me.user_gid_to_select = me.selected_user_gid;
     if (me.selected_user_gid !== null) {
       // If a user was already selected, fill the field with their name
       // and select it all.  The user_gid_to_user dict may not be populated yet.
       if (me.user_gid_to_user[me.selected_user_gid]) {
         var assignee_name = me.user_gid_to_user[me.selected_user_gid].name;
-        me.input.val(assignee_name);
+        me.input.value = assignee_name;
       } else {
-        me.input.val('');
+        me.input.value = '';
       }
     } else {
-      me.input.val('');
+      me.input.value = '';
     }
     me.has_focus = true;
     Popup.setExpandedUi(true);
     me._updateUsers();
     me.render();
     me._ensureSelectedUserVisible();
-    me.token_area.attr('tabindex', '-1');
+    me.token_area.tabindex = '-1';
   });
 
   // Close on blur. A natural blur does not cause us to accept the current
   // selection - there had to be a user action taken that causes us to call
   // `confirmSelection`, which would have updated user_gid_to_select.
-  me.input.blur(function() {
+  me.input.addEventListener('blur', function() {
     me.selected_user_gid = me.user_gid_to_select;
     me.has_focus = false;
     if (!Popup.has_reassigned) {
@@ -517,11 +524,11 @@ UserTypeahead = function(gid) {
     }
     me.render();
     Popup.setExpandedUi(false);
-    me.token_area.attr('tabindex', '0');
+    me.token_area.tabindex = '0';
   });
 
   // Handle keyboard within input
-  me.input.keydown(function(e) {
+  me.input.addEventListener('keydown', function(e) {
     if (e.which === 13) {
       // Enter accepts selection, focuses next UI element.
       me._confirmSelection();
@@ -559,16 +566,16 @@ UserTypeahead = function(gid) {
   });
 
   // When the input changes value, update and re-render our filtered list.
-  me.input.bind('input', function() {
+  me.input.addEventListener('input', function() {
     me._updateUsers();
     me._renderList();
   });
 
   // A user clicking or tabbing to the label should open the typeahead
   // and select what's already there.
-  me.token_area.focus(function() {
+  me.token_area.addEventListener('focus', function() {
     me.input.focus();
-    me.input.get(0).setSelectionRange(0, me.input.val().length);
+    me.input[0].setSelectionRange(0, me.input.value.length);
   });
 
   me.render();
@@ -584,10 +591,14 @@ Asana.update(UserTypeahead, {
    * @returns {jQuery} photo element
    */
   photoForUser: function(user, size) {
-    var photo = $('<div class="Avatar Avatar--' + size + '">');
+    var photo = document.createElement('div');
+    photo.classList.add('Avatar', 'Avatar--' + size);
     var url = user.photo ? user.photo.image_60x60 : UserTypeahead.SILHOUETTE_URL;
-    photo.css('background-image', 'url(' + url + ')');
-    return $('<div class="photo-view ' + size + ' tokenView-photo">').append(photo);
+    photo.style.backgroundImage = 'url(' + url + ')';
+    var photoView = document.createElement('div');
+    photoView.classList.add('photo-view', size, 'tokenView-photo');
+    photoView.append(photo);
+    return photoView;
   }
 
 });
@@ -602,13 +613,13 @@ Asana.update(UserTypeahead.prototype, {
     if (this.has_focus) {
       // Focused - show the list and input instead of the label.
       me._renderList();
-      me.input.show();
-      me.token.hide();
-      me.list_container.show();
+      me.input.style.display = '';
+      me.token.style.display = 'none';
+      me.list_container.style.display = '';
     } else {
       // Not focused - show the label, not the list or input.
       me._renderTokenOrPlaceholder();
-      me.list_container.hide();
+      me.list_container.style.display = 'none';
     }
   },
 
@@ -650,11 +661,11 @@ Asana.update(UserTypeahead.prototype, {
     var me = this;
     var selected_user = me.user_gid_to_user[me.selected_user_gid];
     if (selected_user) {
-      me.token.empty();
+      me.token.innerHTML = '';
       if (selected_user.photo) {
         me.token.append(UserTypeahead.photoForUser(selected_user, 'small'));
       }
-      me.token.append(
+      me.token.innerHTML +=
           '<span class="tokenView-label">' +
           '  <span class="tokenView-labelText">' + selected_user.name + '</span>' +
           '</span>' +
@@ -662,23 +673,23 @@ Asana.update(UserTypeahead.prototype, {
           '  <svg class="svgIcon tokenView-removeIcon" viewBox="0 0 32 32" title="remove">' +
           '    <polygon points="23.778,5.393 16,13.172 8.222,5.393 5.393,8.222 13.172,16 5.393,23.778 8.222,26.607 16,18.828 23.778,26.607 26.607,23.778 18.828,16 26.607,8.222"></polygon>' +
           '  </svg>' +
-          '</a>');
-      $('#' + me.gid + '_token_remove').mousedown(function(e) {
+          '</a>';
+      $('#' + me.gid + '_token_remove').addEventListener('mousedown', function(e) {
         me.selected_user_gid = null;
         me._updateInput();
         me.input.focus();
       });
-      me.token.show();
-      me.input.hide();
+      me.token.style.display = '';
+      me.input.style.display = 'none';
     } else {
-      me.token.hide();
-      me.input.show();
+      me.token.style.display = 'none';
+      me.input.style.display = '';
     }
   },
 
   _renderList: function() {
     var me = this;
-    me.list.empty();
+    me.list.innerHTML = '';
     me.filtered_users.forEach(function(user) {
       me.list.append(me._entryForUser(user, user.gid === me.selected_user_gid));
     });
@@ -686,25 +697,31 @@ Asana.update(UserTypeahead.prototype, {
 
   _entryForUser: function(user, is_selected) {
     var me = this;
-    var node = $('<div id="user_' + user.gid + '" class="user"></div>');
+    var node = document.createElement('div');
+    node.id = 'user_' + user.gid;
+    node.classList.add('user');
     node.append(UserTypeahead.photoForUser(user, 'inbox'));
-    node.append($('<div class="user-name">').text(user.name));
+    var userName = document.createElement('div');
+    userName.classList.add('user-name');
+    userName.textContent = user.name;
+    node.append(userName);
     if (is_selected) {
-      node.addClass('selected');
+      node.classList.add('selected');
     }
 
     // Select on mouseover.
-    node.mouseenter(function() {
+    node.addEventListener('mouseenter', function() {
       me.setSelectedUserId(user.gid);
     });
 
     // Select and confirm on click. We listen to `mousedown` because a click
     // will take focus away from the input, hiding the user list and causing
     // us not to get the ensuing `click` event.
-    node.mousedown(function() {
+    node.addEventListener('mousedown', function() {
       me.setSelectedUserId(user.gid);
       me._confirmSelection();
     });
+    console.log(node);
     return node;
   },
 
@@ -719,7 +736,7 @@ Asana.update(UserTypeahead.prototype, {
     var current_request_counter = this._request_counter;
     Asana.ServerModel.userTypeahead(
       Popup.options.default_workspace_gid,
-      this.input.val(),
+      this.input.value,
       function (users) {
         // Only update the list if no future requests have been initiated.
         if (me._request_counter === current_request_counter) {
@@ -752,7 +769,7 @@ Asana.update(UserTypeahead.prototype, {
   _ensureSelectedUserVisible: function() {
     var index = this._indexOfSelectedUser();
     if (index !== -1) {
-      var node = this.list.children().get(index);
+      var node = this.list.children()[index];
       Asana.Node.ensureBottomVisible(node);
     }
   },
@@ -761,19 +778,19 @@ Asana.update(UserTypeahead.prototype, {
     var me = this;
     var selected_user = me.user_gid_to_user[me.selected_user_gid];
     if (selected_user) {
-      me.input.val(selected_user.name);
+      me.input.value = selected_user.name;
     } else {
-      me.input.val('');
+      me.input.value = '';
     }
   },
 
   setSelectedUserId: function(gid) {
-    if (this.selected_user_gid !== null) {
-      $('#user_' + this.selected_user_gid).removeClass('selected');
+    if (this.selected_user_gid !== null && $('#user_' + this.selected_user_gid)) {
+      $('#user_' + this.selected_user_gid).classList.remove('selected');
     }
     this.selected_user_gid = gid;
-    if (this.selected_user_gid !== null) {
-      $('#user_' + this.selected_user_gid).addClass('selected');
+    if (this.selected_user_gid !== null && $('#user_' + this.selected_user_gid)) {
+      $('#user_' + this.selected_user_gid).classList.add('selected');
     }
     this._updateInput();
   }
@@ -781,6 +798,6 @@ Asana.update(UserTypeahead.prototype, {
 });
 
 
-$(window).load(function() {
+window.addEventListener('load', function() {
   Popup.onLoad();
 });

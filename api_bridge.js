@@ -109,7 +109,9 @@ Asana.ApiBridge = {
     } else {
       // GET/DELETE request, add params as URL parameters.
       var url_params = Asana.update({ opt_client_name: client_name }, params);
-      url += '?' + $.param(url_params);
+      url += '?' + Object.keys(url_params).map(key => {
+        return encodeURIComponent(key) + '=' + encodeURIComponent(url_params[key]);
+      }).join('&');
     }
 
     console.log('Making request to API', http_method, url);
