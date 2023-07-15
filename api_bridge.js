@@ -42,7 +42,7 @@ Asana.ApiBridge = {
    */
   baseApiUrl: function(opt_options) {
     var options = opt_options || Asana.Options.loadOptions();
-    return 'https://' + options.asana_host_port + '/api/' + this.API_VERSION;
+    return 'https://app.asana.com/api/' + this.API_VERSION;
   },
 
   /**

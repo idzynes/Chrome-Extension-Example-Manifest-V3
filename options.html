@@ -1,20 +1,11 @@
 <html>
-<!--
-This page is no longer in use.
 
-To enable it, simply add the following line to the top level dict
-in manifest.json:
-
-  "options_page": "options.html",
-
--->
 <head><title>Asana Options</title>
 <script type="text/javascript" src="asana.js"></script>
 <script type="text/javascript" src="options.js"></script>
 <script type="text/javascript" src="server_model.js"></script>
 <script type="text/javascript" src="api_bridge.js"></script>
 <link rel="stylesheet" href="options.css"/>
-<script type="text/javascript" src="options_page.js"></script>
 </head>
 
 <body>
@@ -26,16 +17,16 @@ in manifest.json:
 
   <table class="form">
     <tr>
-      <td class="field-name">Asana Host:</td>
+      <td class="field-name">Default Workspace:</td>
       <td class="field-value">
-        <input id="asana_host_port_input" type="text" oninput="onChange();">
+        <div><ul id="workspaces_group">Loading...</ul></div>
       </td>
     </tr>
     <tr>
       <td class="field-name"></td>
       <td class="field-notes">
-        The hostname for the Asana application. You should leave this set to
-        its default value.
+        The default workspace where new tasks are added. You can always select
+        a different workspace when you're creating a task.
       </td>
     </tr>
 
@@ -66,8 +57,6 @@ in manifest.json:
 </tr></table>
 
 </body>
-
 <!-- Depends on all elements being loaded, so we include at the end -->
 <script type="text/javascript" src="options_init.js"></script>
-
 </html>

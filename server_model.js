@@ -69,7 +69,7 @@ Asana.ServerModel = {
     // and Asana will choose a suitable default.
     var options = Asana.Options.loadOptions();
     var pot_gid = task.gid;
-    var url = 'https://' + options.asana_host_port + '/0/' + pot_gid + '/' + task.gid;
+    var url = 'https://app.asana.com/0/' + pot_gid + '/' + task.gid;
     callback(url);
   },
 

@@ -88,8 +88,8 @@ Popup = {
           } else {
             // The user is not even logged in. Prompt them to do so!
             me.showLogin(
-                Asana.Options.loginUrl(options),
-                Asana.Options.signupUrl(options));
+                'https://app.asana.com/',
+                'http://asana.com/?utm_source=chrome&utm_medium=ext&utm_campaign=ext');
           }
         });
       });
@@ -225,10 +225,11 @@ Popup = {
         } else {
           $('#workspace_select_container').style.display = 'none';
         }
-        select.value = me.options.default_workspace_gid;
+        select.value = me.options.default_workspace_gid !== '0' ?
+          me.options.default_workspace_gid : me.options.last_used_workspace_gid;
         me.onWorkspaceChanged();
         select.addEventListener('change', function() {
-          if (select.value !== me.options.default_workspace_gid) {
+          if (select.value !== me.options.last_used_workspace_gid) {
             Asana.ServerModel.logEvent({
               name: 'ChromeExtension-ChangedWorkspace'
             });
@@ -318,11 +319,10 @@ Popup = {
     var workspace_gid = me.selectedWorkspaceId();
 
     // Update selected workspace
-    console.log($('#workspace_select'));
-    $('#workspace').innerHTML = ($('#workspace_select option:checked')).textContent;
+    $('#workspace').innerHTML = ($('#workspace_select option:checked') || $('#workspace_select option')).textContent;
 
-    // Save selection as new default.
-    Popup.options.default_workspace_gid = workspace_gid;
+    // Save last used workspace
+    Popup.options.last_used_workspace_gid = workspace_gid;
     Asana.ServerModel.saveOptions(me.options, function() {});
 
     me.setAddEnabled(true);
