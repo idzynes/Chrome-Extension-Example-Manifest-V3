@@ -1,3 +1,6 @@
+const $ = document.querySelector.bind(document);
+const $$ = document.querySelectorAll.bind(document);
+
 /**
  * Load/save options to preferences. Options are represented
  * as a dictionary/object with the following fields:

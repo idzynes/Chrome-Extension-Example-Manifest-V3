@@ -1,7 +1,7 @@
 {
    "background": {
       "persistent": true,
-      "scripts": [ "asana.js", "api_bridge.js", "extension_server.js", "server_model.js", "options.js", "background.js" ]
+      "scripts": [ "background.js", "options.js" ]
    },
    "browser_action": {
       "default_icon": "images/icon48.png",
