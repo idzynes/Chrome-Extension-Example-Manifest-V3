@@ -32,27 +32,36 @@ var fillOptions = function() {
 };
 
 var fillWorkspacesInBackground = function(options) {
-  Asana.ServerModel.workspaces(function(workspaces) {
-    $('#workspaces_group').innerHTML = '<li><label><input name="workspace_gid" type="radio" id="workspace_gid-0" key="0"><b>Last used workspace</b></label></li>';
-    workspaces.forEach(function(workspace) {
-      var workspaceGid = document.createElement('li');
-      workspaceGid.innerHTML = '<label><input name="workspace_gid" type="radio" id="workspace_gid-' +
-        workspace.gid + '" key="' + workspace.gid + '"/>' + workspace.name + '</label>';
-      $('#workspaces_group').append(workspaceGid);
-    });
-    var default_workspace_element = $('#workspace_gid-' + options.defaultWorkspaceGid);
-    if (default_workspace_element) {
-      default_workspace_element.checked = true;
-    } else {
-      $('#workspaces_group input').checked = true;
-    }
-    $$('#workspaces_group input').forEach(input => input.addEventListener('change', onChange));
-  }, function(error_response) {
-    $('#workspaces_group').innerHTML =
-        '<div>Error loading workspaces. Verify the following:<ul>' +
-            '<li>Asana Host is configured correctly.</li>' +
-            '<li>You are <a target="_blank" href="https://app.asana.com/">logged in</a>.</li>' +
-            '<li>You have access to the Asana API.</li></ul>';
+  chrome.runtime.sendMessage(
+    {
+      type: 'api',
+      name: 'workspaces',
+      parameters: {}
+    },
+    function(responseJson) {
+      if (responseJson.errors) {
+        $('#workspaces_group').innerHTML =
+            '<div>Error loading workspaces. Verify the following:<ul>' +
+                '<li>Asana Host is configured correctly.</li>' +
+                '<li>You are <a target="_blank" href="https://app.asana.com/">logged in</a>.</li>' +
+                '<li>You have access to the Asana API.</li></ul>';
+        return;
+      }
+      var workspaces = responseJson.data;
+      $('#workspaces_group').innerHTML = '<li><label><input name="workspace_gid" type="radio" id="workspace_gid-0" key="0"><b>Last used workspace</b></label></li>';
+      workspaces.forEach(function(workspace) {
+        var workspaceGid = document.createElement('li');
+        workspaceGid.innerHTML = '<label><input name="workspace_gid" type="radio" id="workspace_gid-' +
+          workspace.gid + '" key="' + workspace.gid + '"/>' + workspace.name + '</label>';
+        $('#workspaces_group').append(workspaceGid);
+      });
+      var default_workspace_element = $('#workspace_gid-' + options.defaultWorkspaceGid);
+      if (default_workspace_element) {
+        default_workspace_element.checked = true;
+      } else {
+        $('#workspaces_group input').checked = true;
+      }
+      $$('#workspaces_group input').forEach(input => input.addEventListener('change', onChange));
   });
 };
 

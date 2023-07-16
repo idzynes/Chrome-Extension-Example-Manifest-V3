@@ -67,11 +67,6 @@ Popup = {
 
     me.is_external = ('' + window.location.search).indexOf('external=true') !== -1;
 
-    // Our default error handler.
-    Asana.ServerModel.onError = function(response) {
-      me.showError(response.errors[0].message);
-    };
-
     // Ah, the joys of asynchronous programming.
     // To initialize, we've got to gather various bits of information.
     // Starting with a reference to the window and tab that were active when
@@ -82,42 +77,25 @@ Popup = {
     }, function(tabs) {
       var tab = tabs[0];
       // Now load our options ...
-      Asana.ServerModel.options(function(options) {
+      chrome.storage.sync.get({
+        defaultWorkspaceGid: '0',
+        lastUsedWorkspaceGid: '0'
+      }, function(options) {
         me.options = options;
         // And ensure the user is logged in ...
-        Asana.ServerModel.isLoggedIn(function(is_logged_in) {
-          if (is_logged_in) {
-            if (window.quick_add_request) {
-              // If this was a QuickAdd request (set by the code popping up
-              // the window in Asana.ExtensionServer), then we have all the
-              // info we need and should show the add UI right away.
-              me.showAddUi(
-                  quick_add_request.url, quick_add_request.title,
-                  quick_add_request.selected_text,
-                  quick_add_request.favicon_url);
-            } else {
-              // Otherwise we want to get the selection from the tab that
-              // was active when we were opened. So we set up a listener
-              // to listen for the selection send event from the content
-              // window ...
-              var selection = '';
-              var listener = function(request, sender, sendResponse) {
-                if (request.type === 'selection') {
-                  chrome.runtime.onMessage.removeListener(listener);
-                  console.info('Asana popup got selection');
-                  selection = '\n' + request.value;
-                }
-              };
-              chrome.runtime.onMessage.addListener(listener);
+        chrome.runtime.sendMessage(
+          {type: 'cookie', name: 'isLoggedIn'},
+          function(is_logged_in) {
+            if (is_logged_in) {
               me.showAddUi(tab.url, tab.title, '', tab.favIconUrl);
-            }
-          } else {
-            // The user is not even logged in. Prompt them to do so!
-            me.showLogin(
+            } else {
+              // The user is not even logged in. Prompt them to do so!
+              me.showLogin(
                 'https://app.asana.com/',
                 'http://asana.com/?utm_source=chrome&utm_medium=ext&utm_campaign=ext');
+            }
           }
-        });
+        );
       });
     });
 
@@ -215,9 +193,33 @@ Popup = {
     me.favicon_url = favicon_url;
 
     // Populate workspace selector and select default.
-    Asana.ServerModel.me(function(user) {
+
+    chrome.runtime.sendMessage(
+    {
+      type: 'api',
+      name: 'me',
+      parameters: {}
+    },
+    function(responseJson) {
+      if (responseJson.errors) {
+        me.showError(responseJson.errors[0].message);
+        return;
+      }
+      var user = responseJson.data;
       me.user_gid = user.gid;
-      Asana.ServerModel.workspaces(function(workspaces) {
+
+      chrome.runtime.sendMessage(
+      {
+        type: 'api',
+        name: 'workspaces',
+        parameters: {}
+      },
+      function(responseJson2) {
+        if (responseJson2.errors) {
+          me.showError(responseJson2.errors[0].message);
+          return;
+        }
+        var workspaces = responseJson2.data;
         me.workspaces = workspaces;
         var select = $('#workspace_select');
         select.innerHTML = '';
@@ -252,6 +254,7 @@ Popup = {
           $$('.icon-use-link').forEach(el => el.classList.add('no-favicon', 'sprite'));
         }
       });
+
     });
   },
 
@@ -363,26 +366,35 @@ Popup = {
     me.hideError();
     me.setAddWorking(true);
 
-    Asana.ServerModel.createTask(
-        me.selectedWorkspaceId(),
-        {
-          name: $('#name_input').value,
-          notes: $('#notes_input').value,
-          // Default assignee to self
-          assignee: me.typeahead.selected_user_gid || me.user_gid
-        },
-        function(task) {
-          // Success! Show task success, then get ready for another input.
-          me.setAddWorking(false);
-          me.showSuccess(task);
-          me.resetFields();
-          $('#name_input').focus();
-        },
-        function(response) {
+    chrome.runtime.sendMessage(
+      {
+        type: 'api',
+        name: 'createTask',
+        parameters: {
+          workspace_gid: me.selectedWorkspaceId(),
+          task: {
+            name: $('#name_input').value,
+            notes: $('#notes_input').value,
+            // Default assignee to self
+            assignee: me.typeahead.selected_user_gid || me.user_gid
+          }
+        }
+      },
+      function(responseJson) {
+        if (responseJson.errors) {
           // Failure. :( Show error, but leave form available for retry.
           me.setAddWorking(false);
-          me.showError(response.errors[0].message);
-        });
+          me.showError(responseJson.errors[0].message);
+          return;
+        }
+        var task = responseJson.data;
+        // Success! Show task success, then get ready for another input.
+        me.setAddWorking(false);
+        me.showSuccess(task);
+        me.resetFields();
+        $('#name_input').focus();
+      }
+    );
   },
 
   /**
@@ -390,27 +402,29 @@ Popup = {
    */
   showSuccess: function(task) {
     var me = this;
-    Asana.ServerModel.taskViewUrl(task, function(url) {
-      var name = task.name.replace(/^\s*/, '').replace(/\s*$/, '');
-      var link = $('#new_task_link');
-      link.href = url;
-      link.textContent = name !== '' ? name : 'Task';
-      var openCreatedTaskOnClick = function() {
-        chrome.tabs.create({url: url});
-        window.close();
-        return false;
-      };
-      link.removeEventListener('click', openCreatedTaskOnClick);
-      link.addEventListener('click', openCreatedTaskOnClick);
+    // We don't know what pot to view it in so we just use the task ID
+    // and Asana will choose a suitable default.
+    var url = 'https://app.asana.com/0/' + task.gid + '/' + task.gid;
 
-      // Reset logging for multi-add
-      me.has_edited_name = true;
-      me.has_edited_notes = true;
-      me.has_reassigned = true;
-      me.is_first_add = false;
+    var name = task.name.replace(/^\s*/, '').replace(/\s*$/, '');
+    var link = $('#new_task_link');
+    link.href = url;
+    link.textContent = name !== '' ? name : 'Task';
+    var openCreatedTaskOnClick = function() {
+      chrome.tabs.create({url: url});
+      window.close();
+      return false;
+    };
+    link.removeEventListener('click', openCreatedTaskOnClick);
+    link.addEventListener('click', openCreatedTaskOnClick);
 
-      $('#success').style.display = 'inline-block';
-    });
+    // Reset logging for multi-add
+    me.has_edited_name = true;
+    me.has_edited_notes = true;
+    me.has_reassigned = true;
+    me.is_first_add = false;
+
+    $('#success').style.display = 'inline-block';
   },
 
   /**
@@ -720,11 +734,22 @@ Object.assign(UserTypeahead.prototype, {
 
     this._request_counter += 1;
     var current_request_counter = this._request_counter;
-    Asana.ServerModel.userTypeahead(
-      Popup.options.defaultWorkspaceGid,
-      this.input.value,
-      function (users) {
+    chrome.runtime.sendMessage(
+      {
+        type: 'api',
+        name: 'userTypeahead',
+        parameters: {
+          workspace_gid: $('#workspace_select').value,
+          query: this.input.value
+        }
+      },
+      function (responseJson) {
         // Only update the list if no future requests have been initiated.
+        if (responseJson.errors) {
+          me.showError(responseJson.errors[0].message);
+          return;
+        }
+        var users = responseJson.data;
         if (me._request_counter === current_request_counter) {
           // Update the ID -> User map.
           users.forEach(function (user) {
@@ -734,7 +759,8 @@ Object.assign(UserTypeahead.prototype, {
           me.filtered_users = users;
           me._renderList();
         }
-      });
+      }
+    );
   },
 
   _indexOfSelectedUser: function() {

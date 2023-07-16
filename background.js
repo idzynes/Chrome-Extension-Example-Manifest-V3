@@ -28,14 +28,6 @@ Asana.ApiBridge = {
   CACHE_TTL_MS: 15 * 60 * 1000,
 
   /**
-   * @type {Boolean} Set to true on the server (background page), which will
-   *     actually make the API requests. Clients will just talk to the API
-   *     through the ExtensionServer.
-   *
-   */
-  is_server: false,
-
-  /**
    * @type {dict} Map from API path to cache entry for recent GET requests.
    *     date {Date} When cache entry was last refreshed
    *     response {*} Cached request.
@@ -67,24 +59,10 @@ Asana.ApiBridge = {
     var me = this;
     http_method = http_method.toUpperCase();
 
-    // If we're not the server page, send a message to it to make the
-    // API request.
-    if (!me.is_server) {
-      console.info('Client API Request', http_method, path, params);
-      chrome.runtime.sendMessage({
-        type: 'api',
-        method: http_method,
-        path: path,
-        params: params,
-        options: options || {}
-      }, callback);
-      return;
-    }
-
     console.info('Server API Request', http_method, path, params);
 
     // Serve from cache first.
-    if (!options.miss_cache && http_method === 'GET') {
+    if (options && !options.miss_cache && http_method === 'GET') {
       var data = me._readCache(path, new Date());
       if (data) {
         console.log('Serving request from cache', path);
@@ -157,7 +135,7 @@ Asana.ApiBridge = {
       })
       .then(responseJson => {
         if (http_method === 'GET') {
-          me._writeCache(responseJson.path, responseJson.data, new Date());
+          me._writeCache(responseJson.path, responseJson, new Date());
         }
         console.log('Successful response', responseJson);
         callback(responseJson);
@@ -170,8 +148,6 @@ Asana.ApiBridge = {
           callback({errors: [{message: 'Could not parse response from server' }]});
         }
       });
-      return true;
-
     });
   },
 
@@ -193,37 +169,6 @@ Asana.ApiBridge = {
 
 
 /**
- * The "server" portion of the chrome extension, which listens to events
- * from other clients such as the popup or per-page content windows.
- */
-Asana.ExtensionServer = {
-
-  /**
-   * Call from the background page: listen to chrome events and
-   * requests from page clients, which can't make cross-domain requests.
-   */
-  listen: function() {
-    var me = this;
-
-    // Mark our Api Bridge as the server side (the one that actually makes
-    // API requests to Asana vs. just forwarding them to the server window).
-    Asana.ApiBridge.is_server = true;
-
-    chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-      if (request.type === 'api') {
-        // Request to the API. Pass it on to the bridge.
-        Asana.ApiBridge.request(
-            request.method, request.path, request.params, sendResponse,
-            request.options || {});
-        return true;  // will call sendResponse asynchronously
-      }
-    });
-  }
-
-};
-
-
-/**
  * Library of functions for the "server" portion of an extension, which is
  * loaded into the background and popup pages.
  *
@@ -236,30 +181,6 @@ Asana.ServerModel = {
   CACHE_REFRESH_INTERVAL_MS: 15 * 60 * 1000, // 15 minutes
 
   _url_to_cached_image: {},
-
-  /**
-   * Called by the model whenever a request is made and error occurs.
-   * Override to handle in a context-appropriate way. Some requests may
-   * also take an `errback` parameter which will handle errors with
-   * that particular request.
-   *
-   * @param response {dict} Response from the server.
-   */
-  onError: function(response) {},
-
-  /**
-   * Requests the user's preferences for the extension.
-   *
-   * @param callback {Function(options)} Callback on completion.
-   */
-  options: function(callback) {
-    chrome.storage.sync.get({
-      defaultWorkspaceGid: '0',
-      lastUsedWorkspaceGid: '0'
-    }, function(options) {
-      callback(options);
-    });
-  },
 
   /**
    * Determine if the user is logged in.
@@ -277,50 +198,16 @@ Asana.ServerModel = {
   },
 
   /**
-   * Get the URL of a task given some of its data.
-   *
-   * @param task {dict}
-   * @param callback {Function(url)}
-   */
-  taskViewUrl: function(task, callback) {
-    // We don't know what pot to view it in so we just use the task ID
-    // and Asana will choose a suitable default.
-    var pot_gid = task.gid;
-    var url = 'https://app.asana.com/0/' + pot_gid + '/' + task.gid;
-    callback(url);
-  },
-
-  /**
    * Requests the set of workspaces the logged-in user is in.
    *
    * @param callback {Function(workspaces)} Callback on success.
    *     workspaces {dict[]}
    */
-  workspaces: function(callback, errback, options) {
-    var self = this;
-    Asana.ApiBridge.request('GET', '/workspaces', {},
-        function(response) {
-          self._makeCallback(response, callback, errback);
-        }, options);
-  },
-
-  /**
-   * Requests the set of users in a workspace.
-   *
-   * @param callback {Function(users)} Callback on success.
-   *     users {dict[]}
-   */
-  users: function(workspace_gid, callback, errback, options) {
-    var self = this;
+  workspaces: function(callback, parameters) {
     Asana.ApiBridge.request(
-        'GET', '/workspaces/' + workspace_gid + '/users',
-        { opt_fields: 'name,photo.image_60x60' },
-        function(response) {
-          response.forEach(function (user) {
-            self._updateUser(workspace_gid, user);
-          });
-          self._makeCallback(response, callback, errback);
-        }, options);
+      'GET', '/workspaces',
+      {}, callback, {}
+    );
   },
 
   /**
@@ -329,12 +216,11 @@ Asana.ServerModel = {
    * @param callback {Function(user)} Callback on success.
    *     user {dict[]}
    */
-  me: function(callback, errback, options) {
-    var self = this;
-    Asana.ApiBridge.request('GET', '/users/me', {},
-        function(response) {
-          self._makeCallback(response, callback, errback);
-        }, options);
+  me: function(callback, parameters) {
+    Asana.ApiBridge.request(
+      'GET', '/users/me',
+      {}, callback, {}
+    );
   },
 
   /**
@@ -343,46 +229,38 @@ Asana.ServerModel = {
    * @param task {dict} Task fields.
    * @param callback {Function(response)} Callback on success.
    */
-  createTask: function(workspace_gid, task, callback, errback) {
-    var self = this;
+  createTask: function(callback, parameters) {
     Asana.ApiBridge.request(
-        'POST',
-        '/workspaces/' + workspace_gid + '/tasks',
-        task,
-        function(response) {
-          self._makeCallback(response, callback, errback);
-        });
+      'POST', '/workspaces/' + parameters.workspace_gid + '/tasks',
+      parameters.task, callback, {}
+    );
   },
 
   /**
    * Requests user type-ahead completions for a query.
    */
-  userTypeahead: function(workspace_gid, query, callback, errback) {
+  userTypeahead: function(callback, parameters) {
     var self = this;
-
     Asana.ApiBridge.request(
-      'GET',
-      '/workspaces/' + workspace_gid + '/typeahead',
+      'GET', '/workspaces/' + parameters.workspace_gid + '/typeahead',
       {
         type: 'user',
-        query: query,
+        query: parameters.query,
         count: 10,
         opt_fields: 'name,photo.image_60x60',
       },
-      function(response) {
-        self._makeCallback(
-          response,
-          function (users) {
-            users.forEach(function (user) {
-              self._updateUser(workspace_gid, user);
-            });
-            callback(users);
-          },
-          errback);
+      function(responseJson) {
+        var users = responseJson.data;
+        users.forEach(function(user) {
+          self._updateUser(parameters.workspace_gid, user);
+        });
+        callback(responseJson);
+        return true;
       },
       {
         miss_cache: true, // Always skip the cache.
-      });
+      }
+    );
   },
 
   /**
@@ -394,14 +272,6 @@ Asana.ServerModel = {
     this._known_users[workspace_gid] = this._known_users[workspace_gid] || {};
     this._known_users[workspace_gid][user.gid] = user;
     this._cacheUserPhoto(user);
-  },
-
-  _makeCallback: function(response, callback, errback) {
-    if (response.errors) {
-      (errback || this.onError).call(null, response);
-    } else {
-      callback(response.data);
-    }
   },
 
   _cacheUserPhoto: function(user) {
@@ -440,8 +310,20 @@ Asana.ServerModel = {
   }
 };
 
+/**
+ * Listen to events from other clients such as the popup or per-page content windows.
+ */
+chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
+  if (message.type === 'cookie') {
+    Asana.ServerModel[message.name](sendResponse);
+    return true; // will call callback asynchronously
+  } else if (message.type === 'api') {
+    // Request to the API. Pass it on to the bridge.
+    Asana.ServerModel[message.name](sendResponse, message.parameters);
+    return true;
+  }
+});
 
-Asana.ExtensionServer.listen();
 Asana.ServerModel.startPrimingCache();
 
 // Modify referer header sent to typekit, to allow it to serve to us.
