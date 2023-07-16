@@ -37,11 +37,9 @@ Asana.ApiBridge = {
   _cache: {},
 
   /**
-   * @param opt_options {dict} Options to use; if unspecified will be loaded.
    * @return {String} The base URL to use for API requests.
    */
-  baseApiUrl: function(opt_options) {
-    var options = opt_options || Asana.Options.loadOptions();
+  baseApiUrl: function() {
     return 'https://app.asana.com/api/' + this.API_VERSION;
   },
 

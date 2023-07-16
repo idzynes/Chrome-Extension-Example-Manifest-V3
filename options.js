@@ -1,66 +1,16 @@
 /**
- * Module to load/save options to preferences. Options are represented
- * as a dictionary with the following fields:
+ * Load/save options to preferences. Options are represented
+ * as a dictionary/object with the following fields:
  *
- *     default_workspace_gid {String} ID of the workspace that tasks should
+ *     defaultWorkspaceGid {String} ID of the workspace that tasks should
  *         go into by default. The user will be allowed to choose a
  *         different option when adding a task. This is "0" if no default
  *         workspace is selected and we'll try to use the last used space.
+ *     lastUsedWorkspaceGid {String}
  *
- * They are stored off in browser local storage for the extension as a
- * single serialized string, read/written all-or-nothing.
+ * They are stored off in browser local storage for the extension and set/get
+ * async.
  */
-Asana.Options = {
-
-  /**
-   * @return {dict} Default options.
-   */
-  defaultOptions: function() {
-    return {
-      default_workspace_gid: '0',
-      last_used_workspace_gid: '0'
-    };
-  },
-
-  /**
-   * Load the user's preferences synchronously from local storage.
-   *
-   * @return {dict} The user's stored options
-   */
-  loadOptions: function() {
-    var options_json = localStorage.options;
-    var options;
-    if (!options_json) {
-      options = this.defaultOptions();
-      localStorage.options = JSON.stringify(options);
-      return options;
-    } else {
-      options = JSON.parse(options_json);
-      return options;
-    }
-  },
-
-  /**
-   * Save the user's preferences synchronously to local storage.
-   * Overwrites only changed options.
-   *
-   * @param options {dict} The user's options.
-   */
-  saveOptions: function(options) {
-    var options_json_parsed = JSON.parse(localStorage.options);
-    Object.keys(options).forEach(key => options_json_parsed[key] = options[key]);
-    localStorage.options = JSON.stringify(options_json_parsed);
-  },
-
-  /**
-   * Reset the user's preferences to the defaults.
-   */
-  resetOptions: function() {
-    delete localStorage.options;
-    this.loadOptions();
-  }
-
-};
 
 var init = function() {
   fillOptions();
@@ -69,13 +19,16 @@ var init = function() {
 
 // Restores select box state to saved value from localStorage.
 var fillOptions = function() {
-  var options = Asana.Options.loadOptions();
-  $('#workspaces_group').value = options.default_workspace_gid;
-  fillWorkspacesInBackground(options);
+  chrome.storage.sync.get({
+    defaultWorkspaceGid: '0',
+    lastUsedWorkspaceGid: '0'
+  }, function(options) {
+    $('#workspaces_group').value = options.defaultWorkspaceGid;
+    fillWorkspacesInBackground(options);
+  });
 };
 
-var fillWorkspacesInBackground = function(opt_options) {
-  var options = opt_options || Asana.Options.loadOptions();
+var fillWorkspacesInBackground = function(options) {
   Asana.ServerModel.workspaces(function(workspaces) {
     $('#workspaces_group').innerHTML = '<li><label><input name="workspace_gid" type="radio" id="workspace_gid-0" key="0"><b>Last used workspace</b></label></li>';
     workspaces.forEach(function(workspace) {
@@ -84,7 +37,7 @@ var fillWorkspacesInBackground = function(opt_options) {
         workspace.gid + '" key="' + workspace.gid + '"/>' + workspace.name + '</label>';
       $('#workspaces_group').append(workspaceGid);
     });
-    var default_workspace_element = $('#workspace_gid-' + options.default_workspace_gid);
+    var default_workspace_element = $('#workspace_gid-' + options.defaultWorkspaceGid);
     if (default_workspace_element) {
       default_workspace_element.checked = true;
     } else {
@@ -118,22 +71,24 @@ var setSaveEnabled = function(enabled) {
 };
 
 var resetOptions = function() {
-  Asana.Options.resetOptions();
-  fillOptions();
-  setSaveEnabled(false);
+  chrome.storage.sync.set({
+    defaultWorkspaceGid: '0'
+  }, function() {
+    fillOptions();
+    setSaveEnabled(false);
+  });
 };
 
 var saveOptions = function() {
   var default_workspace_input = $('input[name="workspace_gid"]:checked');
   // Somehow we can't directly call default_workspace_input['key']
-  Asana.Options.saveOptions({
-    default_workspace_gid: default_workspace_input.getAttribute('key')
-  });
+  chrome.storage.sync.set({
+    defaultWorkspaceGid: default_workspace_input.getAttribute('key')
+  }, function() {});
+
   setSaveEnabled(false);
   $('#status').innerHTML = 'Options saved.';
   setTimeout(function() {
     $('#status').innerHTML = '';
   }, 3000);
-
-  fillWorkspacesInBackground();
 };

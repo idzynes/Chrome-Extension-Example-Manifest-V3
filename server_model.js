@@ -26,21 +26,14 @@ Asana.ServerModel = {
    * Requests the user's preferences for the extension.
    *
    * @param callback {Function(options)} Callback on completion.
-   *     options {dict} See Asana.Options for details.
    */
   options: function(callback) {
-    callback(Asana.Options.loadOptions());
-  },
-
-  /**
-   * Saves the user's preferences for the extension.
-   *
-   * @param options {dict} See Asana.Options for details.
-   * @param callback {Function()} Callback on completion.
-   */
-  saveOptions: function(options, callback) {
-    Asana.Options.saveOptions(options);
-    callback();
+    chrome.storage.sync.get({
+      defaultWorkspaceGid: '0',
+      lastUsedWorkspaceGid: '0'
+    }, function(options) {
+      callback(options);
+    });
   },
 
   /**
@@ -67,7 +60,6 @@ Asana.ServerModel = {
   taskViewUrl: function(task, callback) {
     // We don't know what pot to view it in so we just use the task ID
     // and Asana will choose a suitable default.
-    var options = Asana.Options.loadOptions();
     var pot_gid = task.gid;
     var url = 'https://app.asana.com/0/' + pot_gid + '/' + task.gid;
     callback(url);

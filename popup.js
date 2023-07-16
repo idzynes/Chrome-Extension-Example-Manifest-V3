@@ -225,11 +225,11 @@ Popup = {
         } else {
           $('#workspace_select_container').style.display = 'none';
         }
-        select.value = me.options.default_workspace_gid !== '0' ?
-          me.options.default_workspace_gid : me.options.last_used_workspace_gid;
+        select.value = me.options.defaultWorkspaceGid !== '0' ?
+          me.options.defaultWorkspaceGid : me.options.lastUsedWorkspaceGid;
         me.onWorkspaceChanged();
         select.addEventListener('change', function() {
-          if (select.value !== me.options.last_used_workspace_gid) {
+          if (select.value !== me.options.lastUsedWorkspaceGid) {
             Asana.ServerModel.logEvent({
               name: 'ChromeExtension-ChangedWorkspace'
             });
@@ -322,9 +322,10 @@ Popup = {
     $('#workspace').innerHTML = ($('#workspace_select option:checked') || $('#workspace_select option')).textContent;
 
     // Save last used workspace
-    Popup.options.last_used_workspace_gid = workspace_gid;
-    Asana.ServerModel.saveOptions(me.options, function() {});
-
+    Popup.options.lastUsedWorkspaceGid = workspace_gid;
+    chrome.storage.sync.set({
+      lastUsedWorkspaceGid: workspace_gid
+    }, function() {});
     me.setAddEnabled(true);
   },
 
@@ -735,7 +736,7 @@ Asana.update(UserTypeahead.prototype, {
     this._request_counter += 1;
     var current_request_counter = this._request_counter;
     Asana.ServerModel.userTypeahead(
-      Popup.options.default_workspace_gid,
+      Popup.options.defaultWorkspaceGid,
       this.input.value,
       function (users) {
         // Only update the list if no future requests have been initiated.

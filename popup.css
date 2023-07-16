@@ -114,10 +114,12 @@
   color: #1B2432;
   display: inline-block;
 }
+
 .generic-input:hover {
   border-color: #A1A4AA;
   transition: border-color 150ms;
 }
+
 .generic-input:focus {
   -webkit-box-shadow: inset 0 1px #E1E2E4;
   animation: input-outline-glow 0.5s ease-out 75ms;
@@ -149,12 +151,14 @@
   padding-left: 15px;
   position: relative;
 }
+
 .tokenView:hover {
   background: #E8F7FB;
   border-color: #02ceff;
   color: #02ceff;
   transition: background .15s,border .15s,color .15s,fill .15s;
 }
+
 .tokenView:focus {
   background: #02ceff;
   border-color: #02ceff;
@@ -162,6 +166,7 @@
   fill: #fff;
   outline:none;
 }
+
 .tokenAreaView .tokenView {
   margin: 0 5px 5px 0;
 }
@@ -195,12 +200,15 @@
   padding: 3px;
   width: 16px;
 }
+
 .tokenView .tokenView-remove {
   fill: #80E6FF;
 }
+
 .tokenView:focus .tokenView-remove {
   fill: #fff;
 }
+
 .tokenView .tokenView-remove:hover {
   fill: #fff;
   background: #80E6FF;
@@ -210,10 +218,12 @@
   -webkit-box-sizing: border-box;
   display: inline-block;
 }
+
 .photo-view.small {
   height: 24px;
   width: 24px;
 }
+
 .photo-view.inbox {
   height: 30px;
   width: 30px;
@@ -252,6 +262,7 @@
   margin: 8px 0px 0px -4px;
   background-position: -175px 0px;
 }
+
 .close-x:hover {
   background-position: -175px -25px;
 }
@@ -261,6 +272,7 @@
   height: 16px;
   fill: #898E95;
 }
+
 .svgIcon-dropdownarrow:hover {
   fill: #80E6FF;
 }
@@ -271,6 +283,7 @@ a:link, a:visited {
   cursor: pointer;
   text-decoration: none;
 }
+
 a:hover {
   text-decoration: underline;
 }
@@ -278,6 +291,7 @@ a:hover {
 ::-webkit-scrollbar{
   width: 14px;
 }
+
 ::-webkit-scrollbar-thumb {
   background: rgba(0,0,0,.05);
   box-shadow: inset 0px -1px rgba(0,0,0,.12);
@@ -295,9 +309,11 @@ textarea::-webkit-scrollbar {
   width: 7px;
   background: #E5F1FF;
 }
+
 textarea::-webkit-scrollbar-thumb {
   background: rgba(116, 193, 237, 0.3);
 }
+
 textarea::-webkit-scrollbar-thumb:hover {
   background: rgba(116, 193, 237, 0.5);
 }
@@ -341,12 +357,14 @@ a, input, textarea {
   height: 24px;
   vertical-align: middle;
 }
+
 .middle-column {
   display: inline-block;
   width: 304px;
   padding: 0 8px 0 8px;
   vertical-align: middle;
 }
+
 .right-column {
   display: inline-block;
   margin-right: 8px;
@@ -621,6 +639,7 @@ a, input, textarea {
 }
 
 .icon-success { background-position: -100px 0px; }
+
 .icon-error { background-position: -125px 0px; margin-right: 7px; }
 
 input, textarea, #assignee {
