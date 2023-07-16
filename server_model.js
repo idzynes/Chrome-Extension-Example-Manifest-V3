@@ -160,14 +160,6 @@ Asana.ServerModel = {
       });
   },
 
-  logEvent: function(event) {
-    Asana.ApiBridge.request(
-        'POST',
-        '/logs',
-        event,
-        function(response) {});
-  },
-
   /**
    * All the users that have been seen so far, keyed by workspace and user.
    */

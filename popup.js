@@ -3,6 +3,35 @@
  */
 Popup = {
 
+  // When popping up a window, the size given is for the content.
+  // When resizing the same window, the size must include the chrome. Sigh.
+  CHROME_TITLEBAR_HEIGHT: 24,
+  // Natural dimensions of popup window. The Chrome popup window adds 10px
+  // bottom padding, so we must add that as well when considering how tall
+  // our popup window should be.
+  POPUP_UI_HEIGHT: 310 + 10,
+  POPUP_UI_WIDTH: 410,
+  // Size of popup when expanded to include assignee list.
+  POPUP_EXPANDED_UI_HEIGHT: 310 + 10 + 129,
+
+  /**
+   * Ensures that the bottom of the element is visible. If it is not then it
+   * will be scrolled up enough to be visible.
+   *
+   * Note: this does not take account of the size of the window. That's ok for
+   * now because the scrolling element is not the top-level element.
+   */
+  ensureBottomVisible: function(node) {
+    var el = $(node);
+    var pos = el.position();
+    var element_from_point = document.elementFromPoint(
+        pos.left, pos.top + el.height());
+    if (element_from_point === null ||
+        $(element_from_point).closest(node).size() === 0) {
+      node.scrollIntoView(/*alignWithTop=*/ false);
+    }
+  },
+
   // Is this an external popup window? (vs. the one from the menu)
   is_external: false,
 
@@ -56,9 +85,6 @@ Popup = {
         Asana.ServerModel.isLoggedIn(function(is_logged_in) {
           if (is_logged_in) {
             if (window.quick_add_request) {
-              Asana.ServerModel.logEvent({
-                name: 'ChromeExtension-Open-QuickAdd'
-              });
               // If this was a QuickAdd request (set by the code popping up
               // the window in Asana.ExtensionServer), then we have all the
               // info we need and should show the add UI right away.
@@ -67,9 +93,6 @@ Popup = {
                   quick_add_request.selected_text,
                   quick_add_request.favicon_url);
             } else {
-              Asana.ServerModel.logEvent({
-                name: 'ChromeExtension-Open-Button'
-              });
               // Otherwise we want to get the selection from the tab that
               // was active when we were opened. So we set up a listener
               // to listen for the selection send event from the content
@@ -100,11 +123,6 @@ Popup = {
     window.addEventListener('keydown', function(e) {
       // Close the popup if the ESCAPE key is pressed.
       if (e.which === 27) {
-        if (me.is_first_add) {
-          Asana.ServerModel.logEvent({
-            name: 'ChromeExtension-Abort'
-          });
-        }
         window.close();
       } else if (e.which === 9) {
         // Don't let ourselves TAB to focus the document body, so if we're
@@ -123,11 +141,6 @@ Popup = {
     // Close if the X is clicked.
     $$('.close-x').forEach(el => el.addEventListener(
       'click', function() {
-        if (me.is_first_add) {
-          Asana.ServerModel.logEvent({
-            name: 'ChromeExtension-Abort'
-          });
-        }
         window.close();
       })
     );
@@ -135,18 +148,12 @@ Popup = {
     $('#name_input').addEventListener('keyup', function() {
       if (!me.has_edited_name && $('#name_input').value !== '') {
         me.has_edited_name = true;
-        Asana.ServerModel.logEvent({
-          name: 'ChromeExtension-ChangedTaskName'
-        });
       }
       me.maybeDisablePageDetailsButton();
     });
     $('#notes_input').addEventListener('keyup', function() {
       if (!me.has_edited_notes && $('#notes_input').value !== '') {
         me.has_edited_notes= true;
-        Asana.ServerModel.logEvent({
-          name: 'ChromeExtension-ChangedTaskNotes'
-        });
       }
       me.maybeDisablePageDetailsButton();
     });
@@ -165,9 +172,6 @@ Popup = {
         use_page_details_button.classList.add('disabled');
         if (!me.has_used_page_details) {
           me.has_used_page_details = true;
-          Asana.ServerModel.logEvent({
-            name: 'ChromeExtension-UsedPageDetails'
-          });
         }
       }
     });
@@ -186,9 +190,9 @@ Popup = {
   setExpandedUi: function(is_expanded) {
     if (this.is_external) {
       window.resizeTo(
-          Asana.POPUP_UI_WIDTH,
-          (is_expanded ? Asana.POPUP_EXPANDED_UI_HEIGHT : Asana.POPUP_UI_HEIGHT)
-              + Asana.CHROME_TITLEBAR_HEIGHT);
+          this.POPUP_UI_WIDTH,
+          (is_expanded ? this.POPUP_EXPANDED_UI_HEIGHT : this.POPUP_UI_HEIGHT)
+              + this.CHROME_TITLEBAR_HEIGHT);
     }
   },
 
@@ -229,11 +233,6 @@ Popup = {
           me.options.defaultWorkspaceGid : me.options.lastUsedWorkspaceGid;
         me.onWorkspaceChanged();
         select.addEventListener('change', function() {
-          if (select.value !== me.options.lastUsedWorkspaceGid) {
-            Asana.ServerModel.logEvent({
-              name: 'ChromeExtension-ChangedWorkspace'
-            });
-          }
           me.onWorkspaceChanged();
         });
 
@@ -361,12 +360,6 @@ Popup = {
     me.hideError();
     me.setAddWorking(true);
 
-    if (!me.is_first_add) {
-      Asana.ServerModel.logEvent({
-        name: 'ChromeExtension-CreateTask-MultipleTasks'
-      });
-    }
-
     Asana.ServerModel.createTask(
         me.selectedWorkspaceId(),
         {
@@ -377,9 +370,6 @@ Popup = {
         },
         function(task) {
           // Success! Show task success, then get ready for another input.
-          Asana.ServerModel.logEvent({
-            name: 'ChromeExtension-CreateTask-Success'
-          });
           me.setAddWorking(false);
           me.showSuccess(task);
           me.resetFields();
@@ -387,9 +377,6 @@ Popup = {
         },
         function(response) {
           // Failure. :( Show error, but leave form available for retry.
-          Asana.ServerModel.logEvent({
-            name: 'ChromeExtension-CreateTask-Failure'
-          });
           me.setAddWorking(false);
           me.showError(response.errors[0].message);
         });
@@ -517,11 +504,6 @@ UserTypeahead = function(gid) {
     me.has_focus = false;
     if (!Popup.has_reassigned) {
       Popup.has_reassigned = true;
-      Asana.ServerModel.logEvent({
-        name: (me.selected_user_gid === Popup.user_gid || me.selected_user_gid === null) ?
-            'ChromeExtension-AssignToSelf' :
-            'ChromeExtension-AssignToOther'
-      });
     }
     me.render();
     Popup.setExpandedUi(false);
@@ -582,7 +564,7 @@ UserTypeahead = function(gid) {
   me.render();
 };
 
-Asana.update(UserTypeahead, {
+Object.assign(UserTypeahead, {
 
   SILHOUETTE_URL: './images/nopicture.png',
 
@@ -604,7 +586,7 @@ Asana.update(UserTypeahead, {
 
 });
 
-Asana.update(UserTypeahead.prototype, {
+Object.assign(UserTypeahead.prototype, {
 
   /**
    * Render the typeahead, changing elements and content as needed.
@@ -771,7 +753,7 @@ Asana.update(UserTypeahead.prototype, {
     var index = this._indexOfSelectedUser();
     if (index !== -1) {
       var node = this.list.children()[index];
-      Asana.Node.ensureBottomVisible(node);
+      this.ensureBottomVisible(node);
     }
   },
 
