@@ -7,8 +7,8 @@ integrates Asana into your web experience in the following ways:
     You can click a button to populate the task name with the page title and
     the URL and current selected text in the notes.
 
-  * Installs the special Asana ALT+A keyboard shortcut. When this key combo
-    is pressed from any web page, it brings up the same popup.
+  * Installs the special Asana ALT+SHIFT+A keyboard shortcut. When this key
+    combo is pressed from any web page, it brings up the same popup.
     This functionality will operate on any window opened after the extension
     is loaded.
 
@@ -16,21 +16,16 @@ See: http://developer.asana.com/
 
 Files of special interest:
 
-  api_bridge.js:
+  - background.js:
     Handles generic communication with the API.
 
-  server_model.js:
-    Wraps specifics of individual API calls to return objects to calling code.
-    This is not a real ORM, just the bare bones necessary to get a few
-    simple things done.
-
-  popup.html
+  - popup.html:
     Source for the popup window, contains the top-level logic which drives
     most of the user-facing functionality.
 
 To install:
 
-  1. Download the code, e.g. `git clone git://github.com/Asana/Chrome-Extension-Example.git`
+  1. Download the code, e.g. `git clone https://github.com/ShunSakurai/Chrome-Extension-Example-Manifest-V3.git`
   2. Navigate chrome to `chrome://extensions`
   3. Check the `Developer mode` toggle
   4. Click on `Load Unpacked Extension...`

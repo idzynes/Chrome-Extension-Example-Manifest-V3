@@ -6,14 +6,19 @@ const Asana = {};
 
 /**
  * Functionality to communicate with the Asana API. This should get loaded
- * in the "server" portion of the chrome extension because it will make
- * HTTP requests and needs cross-domain privileges.
+ * in the background "server" portion of the chrome extension because it will
+ * make HTTP requests and needs cross-domain privileges.
  *
- * The bridge does not need to use an auth token to connect to
- * the API. Since it is a browser extension it can access the user's cookies
+ * The bridge does not need to use an auth token to connect to the API.
+ * Since it is a browser extension it can access the user's cookies
  * and can use them to authenticate to the API. This capability is specific
  * to browser extensions, and other types of applications would have to obtain
  * an auth token to communicate with the API.
+ *
+ * We need two snippets to communicate with Asana API:
+ *   "host_permissions": ["https://app.asana.com/*"] in manifest.json
+ *   'X-Allow-Asana-Client': '1' in request header
+ *
  */
 Asana.ApiBridge = {
 
@@ -51,7 +56,7 @@ Asana.ApiBridge = {
    *     status {Integer} HTTP status code of response.
    *     data {dict} Object representing response of API call, depends on
    *         method. Only available if response was a 200.
-   *     error {String?} Error message, if there was a problem.
+   *     errors {dict} Object containing a message, if there was a problem.
    * @param options {dict?}
    *     miss_cache {Boolean} Do not check cache before requesting
    */
@@ -105,7 +110,7 @@ Asana.ApiBridge = {
       if (!cookie) {
         callback({
           status: 401,
-          error: 'Not Authorized'
+          errors: [{message: 'Not Authorized'}]
         });
         return;
       }
@@ -169,8 +174,8 @@ Asana.ApiBridge = {
 
 
 /**
- * Library of functions for the "server" portion of an extension, which is
- * loaded into the background and popup pages.
+ * Library of functions for the "server" portion of an extension, which receives
+ * requests from options.js and popup.js and pass them to ApiBridge.
  *
  * Some of these functions are asynchronous, because they may have to talk
  * to the Asana API to get results.
@@ -183,10 +188,14 @@ Asana.ServerModel = {
   _url_to_cached_image: {},
 
   /**
+   * Request to the Cookie.
+   * /
+
+  /**
    * Determine if the user is logged in.
    *
    * @param callback {Function(is_logged_in)} Called when request complete.
-   *     is_logged_in {Boolean} True iff the user is logged in to Asana.
+   *     is_logged_in {Boolean} True if the user is logged in to Asana.
    */
   isLoggedIn: function(callback) {
     chrome.cookies.get({
@@ -198,6 +207,11 @@ Asana.ServerModel = {
   },
 
   /**
+   * Requests to the API.
+   * /
+
+  /**
+   *
    * Requests the set of workspaces the logged-in user is in.
    *
    * @param callback {Function(workspaces)} Callback on success.
@@ -238,6 +252,7 @@ Asana.ServerModel = {
 
   /**
    * Requests user type-ahead completions for a query.
+   * popup.js also has a custom class for handling returned data.
    */
   userTypeahead: function(callback, parameters) {
     const self = this;
@@ -315,10 +330,11 @@ Asana.ServerModel = {
  */
 chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
   if (message.type === 'cookie') {
+    // Request to the Cookie.
     Asana.ServerModel[message.name](sendResponse);
     return true; // will call callback asynchronously
   } else if (message.type === 'api') {
-    // Request to the API. Pass it on to the bridge.
+    // Request to the API.
     Asana.ServerModel[message.name](sendResponse, message.parameters);
     return true;
   }

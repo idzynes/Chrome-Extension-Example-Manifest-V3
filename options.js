@@ -1,3 +1,4 @@
+// jQuery-like shorthands
 const $ = document.querySelector.bind(document);
 const $$ = document.querySelectorAll.bind(document);
 
@@ -9,7 +10,8 @@ const $$ = document.querySelectorAll.bind(document);
  *         go into by default. The user will be allowed to choose a
  *         different option when adding a task. This is "0" if no default
  *         workspace is selected and we'll try to use the last used space.
- *     lastUsedWorkspaceGid {String}
+ *     lastUsedWorkspaceGid {String} This option remembers the last selected
+ *         on popup.html.
  *
  * They are stored off in browser local storage for the extension and set/get
  * async.
@@ -20,7 +22,7 @@ const init = function() {
   $('#reset_button').addEventListener('click', resetOptions);
 };
 
-// Restores select box state to saved value from localStorage.
+// Restores select box state to saved value from storage.
 const fillOptions = function() {
   chrome.storage.sync.get({
     defaultWorkspaceGid: '0',
@@ -93,7 +95,7 @@ const resetOptions = function() {
 
 const saveOptions = function() {
   const default_workspace_input = $('input[name="workspace_gid"]:checked');
-  // Somehow we can't directly call default_workspace_input['key']
+  // Can't directly call default_workspace_input['key'], so using getAttribute
   chrome.storage.sync.set({
     defaultWorkspaceGid: default_workspace_input.getAttribute('key')
   }, function() {});
