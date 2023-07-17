@@ -157,7 +157,7 @@ const Popup = {
       }
     });
     // Make a typeahead for assignee
-    me.typeahead = new UserTypeahead('assignee');
+    me.typeahead = new UserTypeahead();
   },
 
   maybeDisablePageDetailsButton: function() {
@@ -472,129 +472,130 @@ const Popup = {
  * @constructor
  */
 
-const UserTypeahead = function(gid) {
-  const me = this;
-  me.gid = gid;
-  me.users = [];
-  me.filtered_users = [];
-  me.user_gid_to_user = {};
-  me.selected_user_gid = null;
-  me.user_gid_to_select = null;
-  me.has_focus = false;
+const UserTypeahead = class {
 
-  me._request_counter = 0;
+  constructor() {
+    this.users = [];
+    this.filtered_users = [];
+    this.user_gid_to_user = {};
+    this.selected_user_gid = null;
+    this.user_gid_to_select = null;
+    this.has_focus = false;
 
-  // Store off UI elements.
-  me.input = $('#' + gid + '_input');
-  me.token_area = $('#' + gid + '_token_area');
-  me.token = $('#' + gid + '_token');
-  me.list = $('#' + gid + '_list');
-  me.list_container = $('#' + gid + '_list_container');
+    this._request_counter = 0;
 
-  // Open on focus.
-  me.input.addEventListener('focus', function() {
-    me.user_gid_to_select = me.selected_user_gid;
-    if (me.selected_user_gid !== null) {
-      // If a user was already selected, fill the field with their name
-      // and select it all.  The user_gid_to_user dict may not be populated yet.
-      if (me.user_gid_to_user[me.selected_user_gid]) {
-        const assignee_name = me.user_gid_to_user[me.selected_user_gid].name;
-        me.input.value = assignee_name;
+    // Store off UI elements.
+    this.input = $('#assignee_input');
+    this.token_area = $('#assignee_token_area');
+    this.token = $('#assignee_token');
+    this.list = $('#assignee_list');
+    this.list_container = $('#assignee_list_container');
+    const self = this;
+
+    // Open on focus.
+    this.input.addEventListener('focus', function() {
+      self.user_gid_to_select = self.selected_user_gid;
+      if (self.selected_user_gid !== null) {
+        // If a user was already selected, fill the field with their name
+        // and select it all.  The user_gid_to_user dict may not be populated yet.
+        if (self.user_gid_to_user[self.selected_user_gid]) {
+          const assignee_name = self.user_gid_to_user[self.selected_user_gid].name;
+          self.input.value = assignee_name;
+        } else {
+          self.input.value = '';
+        }
       } else {
-        me.input.value = '';
+        self.input.value = '';
       }
-    } else {
-      me.input.value = '';
-    }
-    me.has_focus = true;
-    Popup.setExpandedUi(true);
-    me._updateUsers();
-    me.render();
-    me._ensureSelectedUserVisible();
-    me.token_area.tabindex = '-1';
-  });
+      self.has_focus = true;
+      Popup.setExpandedUi(true);
+      self._updateUsers();
+      self.render();
+      self._ensureSelectedUserVisible();
+      self.token_area.tabindex = '-1';
+    });
 
-  // Close on blur. A natural blur does not cause us to accept the current
-  // selection - there had to be a user action taken that causes us to call
-  // `confirmSelection`, which would have updated user_gid_to_select.
-  me.input.addEventListener('blur', function() {
-    me.selected_user_gid = me.user_gid_to_select;
-    me.has_focus = false;
-    if (!Popup.has_reassigned) {
-      Popup.has_reassigned = true;
-    }
-    me.render();
-    Popup.setExpandedUi(false);
-    me.token_area.tabindex = '0';
-  });
-
-  // Handle keyboard within input
-  me.input.addEventListener('keydown', function(e) {
-    if (e.which === 13) {
-      // Enter accepts selection, focuses next UI element.
-      me._confirmSelection();
-      $('#add_button').focus();
-      return false;
-    } else if (e.which === 9) {
-      // Tab accepts selection. Browser default behavior focuses next element.
-      me._confirmSelection();
-      return true;
-    } else if (e.which === 27) {
-      // Abort selection. Stop propagation to avoid closing the whole
-      // popup window.
-      e.stopPropagation();
-      me.input.blur();
-      return false;
-    } else if (e.which === 40) {
-      // Down: select next.
-      const index = me._indexOfSelectedUser();
-      if (index === -1 && me.filtered_users.length > 0) {
-        me.setSelectedUserId(me.filtered_users[0].gid);
-      } else if (index >= 0 && index < me.filtered_users.length) {
-        me.setSelectedUserId(me.filtered_users[index + 1].gid);
+    // Close on blur. A natural blur does not cause us to accept the current
+    // selection - there had to be a user action taken that causes us to call
+    // `confirmSelection`, which would have updated user_gid_to_select.
+    this.input.addEventListener('blur', function() {
+      self.selected_user_gid = self.user_gid_to_select;
+      self.has_focus = false;
+      if (!Popup.has_reassigned) {
+        Popup.has_reassigned = true;
       }
-      me._ensureSelectedUserVisible();
-      e.preventDefault();
-    } else if (e.which === 38) {
-      // Up: select prev.
-      const index = me._indexOfSelectedUser();
-      if (index > 0) {
-        me.setSelectedUserId(me.filtered_users[index - 1].gid);
+      self.render();
+      Popup.setExpandedUi(false);
+      self.token_area.tabindex = '0';
+    });
+
+    // Handle keyboard within input
+    this.input.addEventListener('keydown', function(e) {
+      if (e.which === 13) {
+        // Enter accepts selection, focuses next UI element.
+        self._confirmSelection();
+        $('#add_button').focus();
+        return false;
+      } else if (e.which === 9) {
+        // Tab accepts selection. Browser default behavior focuses next element.
+        self._confirmSelection();
+        return true;
+      } else if (e.which === 27) {
+        // Abort selection. Stop propagation to avoid closing the whole
+        // popup window.
+        e.stopPropagation();
+        self.input.blur();
+        return false;
+      } else if (e.which === 40) {
+        // Down: select next.
+        const index = self._indexOfSelectedUser();
+        if (index === -1 && self.filtered_users.length > 0) {
+          self.setSelectedUserId(self.filtered_users[0].gid);
+        } else if (index >= 0 && index < self.filtered_users.length) {
+          self.setSelectedUserId(self.filtered_users[index + 1].gid);
+        }
+        self._ensureSelectedUserVisible();
+        e.preventDefault();
+      } else if (e.which === 38) {
+        // Up: select prev.
+        const index = self._indexOfSelectedUser();
+        if (index > 0) {
+          self.setSelectedUserId(self.filtered_users[index - 1].gid);
+        }
+        self._ensureSelectedUserVisible();
+        e.preventDefault();
       }
-      me._ensureSelectedUserVisible();
-      e.preventDefault();
-    }
-  });
+    });
 
-  // When the input changes value, update and re-render our filtered list.
-  me.input.addEventListener('input', function() {
-    me._updateUsers();
-    me._renderList();
-  });
+    // When the input changes value, update and re-render our filtered list.
+    this.input.addEventListener('input', function() {
+      self._updateUsers();
+      self._renderList();
+    });
 
-  // A user clicking or tabbing to the label should open the typeahead
-  // and select what's already there.
-  me.token_area.addEventListener('focus', function() {
-    me.input.focus();
-    me.input[0].setSelectionRange(0, me.input.value.length);
-  });
+    // A user clicking or tabbing to the label should open the typeahead
+    // and select what's already there.
+    this.token_area.addEventListener('focus', function() {
+      self.input.focus();
+      self.input[0].setSelectionRange(0, self.input.value.length);
+    });
 
-  me.render();
-};
+    this.render();
 
-Object.assign(UserTypeahead, {
-
-  SILHOUETTE_URL: './images/nopicture.png',
+    this.SILHOUETTE_URL = './images/nopicture.png';
+  }
 
   /**
    * @param user {dict}
    * @param size {string} small, inbox, etc.
    * @returns {jQuery} photo element
    */
-  photoForUser: function(user, size) {
+  photoForUser(user, size) {
+    const me = this;
     const photo = document.createElement('div');
     photo.classList.add('Avatar', 'Avatar--' + size);
-    const url = user.photo ? user.photo.image_60x60 : UserTypeahead.SILHOUETTE_URL;
+    const url = user.photo ? user.photo.image_60x60 : me.SILHOUETTE_URL;
+    // const url = user.photo ? user.photo.image_60x60 : this.SILHOUETTE_URL;
     photo.style.backgroundImage = 'url(' + url + ')';
     const photoView = document.createElement('div');
     photoView.classList.add('photo-view', size, 'tokenView-photo');
@@ -602,14 +603,10 @@ Object.assign(UserTypeahead, {
     return photoView;
   }
 
-});
-
-Object.assign(UserTypeahead.prototype, {
-
   /**
    * Render the typeahead, changing elements and content as needed.
    */
-  render: function() {
+  render() {
     const me = this;
     if (this.has_focus) {
       // Focused - show the list and input instead of the label.
@@ -622,14 +619,14 @@ Object.assign(UserTypeahead.prototype, {
       me._renderTokenOrPlaceholder();
       me.list_container.style.display = 'none';
     }
-  },
+  }
 
   /**
    * Update the set of all (unfiltered) users available in the typeahead.
    *
    * @param users {dict[]}
    */
-  updateUsers: function(users) {
+  updateUsers(users) {
     const me = this;
     // Build a map from user ID to user
     let this_user = null;
@@ -656,15 +653,15 @@ Object.assign(UserTypeahead.prototype, {
     }
     me._updateFilteredUsers();
     me.render();
-  },
+  }
 
-  _renderTokenOrPlaceholder: function() {
+  _renderTokenOrPlaceholder() {
     const me = this;
     const selected_user = me.user_gid_to_user[me.selected_user_gid];
     if (selected_user) {
       me.token.innerHTML = '';
       if (selected_user.photo) {
-        me.token.append(UserTypeahead.photoForUser(selected_user, 'small'));
+        me.token.append(me.photoForUser(selected_user, 'small'));
       }
       me.token.innerHTML +=
           '<span class="tokenView-label">' +
@@ -686,22 +683,22 @@ Object.assign(UserTypeahead.prototype, {
       me.token.style.display = 'none';
       me.input.style.display = '';
     }
-  },
+  }
 
-  _renderList: function() {
+  _renderList() {
     const me = this;
     me.list.innerHTML = '';
     me.filtered_users.forEach(function(user) {
       me.list.append(me._entryForUser(user, user.gid === me.selected_user_gid));
     });
-  },
+  }
 
-  _entryForUser: function(user, is_selected) {
+  _entryForUser(user, is_selected) {
     const me = this;
     const node = document.createElement('div');
     node.id = 'user_' + user.gid;
     node.classList.add('user');
-    node.append(UserTypeahead.photoForUser(user, 'inbox'));
+    node.append(me.photoForUser(user, 'inbox'));
     const userName = document.createElement('div');
     userName.classList.add('user-name');
     userName.textContent = user.name;
@@ -724,13 +721,13 @@ Object.assign(UserTypeahead.prototype, {
     });
     console.log(node);
     return node;
-  },
+  }
 
-  _confirmSelection: function() {
+  _confirmSelection() {
     this.user_gid_to_select = this.selected_user_gid;
-  },
+  }
 
-  _updateUsers: function() {
+  _updateUsers() {
     const me = this;
 
     this._request_counter += 1;
@@ -762,9 +759,9 @@ Object.assign(UserTypeahead.prototype, {
         }
       }
     );
-  },
+  }
 
-  _indexOfSelectedUser: function() {
+  _indexOfSelectedUser() {
     const me = this;
     const selected_user = me.user_gid_to_user[me.selected_user_gid];
     if (selected_user) {
@@ -772,22 +769,22 @@ Object.assign(UserTypeahead.prototype, {
     } else {
       return -1;
     }
-  },
+  }
 
   /**
    * Helper to call this when the selection was changed by something that
    * was not the mouse (which is pointing directly at a visible element),
    * to ensure the selected user is always visible in the list.
    */
-  _ensureSelectedUserVisible: function() {
+  _ensureSelectedUserVisible() {
     const index = this._indexOfSelectedUser();
     if (index !== -1) {
       const node = this.list.children()[index];
       this.ensureBottomVisible(node);
     }
-  },
+  }
 
-  _updateInput: function() {
+  _updateInput() {
     const me = this;
     const selected_user = me.user_gid_to_user[me.selected_user_gid];
     if (selected_user) {
@@ -795,9 +792,9 @@ Object.assign(UserTypeahead.prototype, {
     } else {
       me.input.value = '';
     }
-  },
+  }
 
-  setSelectedUserId: function(gid) {
+  setSelectedUserId(gid) {
     if (this.selected_user_gid !== null && $('#user_' + this.selected_user_gid)) {
       $('#user_' + this.selected_user_gid).classList.remove('selected');
     }
@@ -808,7 +805,7 @@ Object.assign(UserTypeahead.prototype, {
     this._updateInput();
   }
 
-});
+};
 
 
 window.addEventListener('load', function() {
