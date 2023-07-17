@@ -15,13 +15,13 @@ const $$ = document.querySelectorAll.bind(document);
  * async.
  */
 
-var init = function() {
+const init = function() {
   fillOptions();
   $('#reset_button').addEventListener('click', resetOptions);
 };
 
 // Restores select box state to saved value from localStorage.
-var fillOptions = function() {
+const fillOptions = function() {
   chrome.storage.sync.get({
     defaultWorkspaceGid: '0',
     lastUsedWorkspaceGid: '0'
@@ -31,7 +31,7 @@ var fillOptions = function() {
   });
 };
 
-var fillWorkspacesInBackground = function(options) {
+const fillWorkspacesInBackground = function(options) {
   chrome.runtime.sendMessage(
     {
       type: 'api',
@@ -47,15 +47,15 @@ var fillWorkspacesInBackground = function(options) {
                 '<li>You have access to the Asana API.</li></ul>';
         return;
       }
-      var workspaces = responseJson.data;
+      const workspaces = responseJson.data;
       $('#workspaces_group').innerHTML = '<li><label><input name="workspace_gid" type="radio" id="workspace_gid-0" key="0"><b>Last used workspace</b></label></li>';
       workspaces.forEach(function(workspace) {
-        var workspaceGid = document.createElement('li');
+        const workspaceGid = document.createElement('li');
         workspaceGid.innerHTML = '<label><input name="workspace_gid" type="radio" id="workspace_gid-' +
           workspace.gid + '" key="' + workspace.gid + '"/>' + workspace.name + '</label>';
         $('#workspaces_group').append(workspaceGid);
       });
-      var default_workspace_element = $('#workspace_gid-' + options.defaultWorkspaceGid);
+      const default_workspace_element = $('#workspace_gid-' + options.defaultWorkspaceGid);
       if (default_workspace_element) {
         default_workspace_element.checked = true;
       } else {
@@ -65,12 +65,12 @@ var fillWorkspacesInBackground = function(options) {
   });
 };
 
-var onChange = function() {
+const onChange = function() {
   setSaveEnabled(true);
 };
 
-var setSaveEnabled = function(enabled) {
-  var button = $('#save_button');
+const setSaveEnabled = function(enabled) {
+  const button = $('#save_button');
   if (enabled) {
     button.classList.remove('disabled');
     button.classList.add('enabled');
@@ -82,7 +82,7 @@ var setSaveEnabled = function(enabled) {
   }
 };
 
-var resetOptions = function() {
+const resetOptions = function() {
   chrome.storage.sync.set({
     defaultWorkspaceGid: '0'
   }, function() {
@@ -91,8 +91,8 @@ var resetOptions = function() {
   });
 };
 
-var saveOptions = function() {
-  var default_workspace_input = $('input[name="workspace_gid"]:checked');
+const saveOptions = function() {
+  const default_workspace_input = $('input[name="workspace_gid"]:checked');
   // Somehow we can't directly call default_workspace_input['key']
   chrome.storage.sync.set({
     defaultWorkspaceGid: default_workspace_input.getAttribute('key')

@@ -1,7 +1,7 @@
 /**
  * Define the top-level Asana namespace.
  */
-Asana = {};
+const Asana = {};
 
 
 /**
@@ -56,14 +56,14 @@ Asana.ApiBridge = {
    *     miss_cache {Boolean} Do not check cache before requesting
    */
   request: function(http_method, path, params, callback, options) {
-    var me = this;
+    const me = this;
     http_method = http_method.toUpperCase();
 
     console.info('Server API Request', http_method, path, params);
 
     // Serve from cache first.
     if (options && !options.miss_cache && http_method === 'GET') {
-      var data = me._readCache(path, new Date());
+      const data = me._readCache(path, new Date());
       if (data) {
         console.log('Serving request from cache', path);
         callback(data);
@@ -72,16 +72,16 @@ Asana.ApiBridge = {
     }
 
     // Be polite to Asana API and tell them who we are.
-    var manifest = chrome.runtime.getManifest();
-    var client_name = [
+    const manifest = chrome.runtime.getManifest();
+    const client_name = [
       'chrome-extension',
       chrome.i18n.getMessage('@@extension_id'),
       manifest.version,
       manifest.name
     ].join(':');
 
-    var url = me.baseApiUrl() + path;
-    var body_data;
+    let url = me.baseApiUrl() + path;
+    let body_data;
     if (http_method === 'PUT' || http_method === 'POST') {
       // POST/PUT request, put params in body
       body_data = {
@@ -112,7 +112,7 @@ Asana.ApiBridge = {
 
       // Note that any URL fetched here must be matched by a permission in
       // the manifest.json file!
-      var attrs = {
+      const attrs = {
         method: http_method,
         timeout: 30000,   // 30 second timeout
         headers: {
@@ -152,7 +152,7 @@ Asana.ApiBridge = {
   },
 
   _readCache: function(path, date) {
-    var entry = this._cache[path];
+    const entry = this._cache[path];
     if (entry && entry.date >= date - this.CACHE_TTL_MS) {
       return entry.response;
     }
@@ -240,7 +240,7 @@ Asana.ServerModel = {
    * Requests user type-ahead completions for a query.
    */
   userTypeahead: function(callback, parameters) {
-    var self = this;
+    const self = this;
     Asana.ApiBridge.request(
       'GET', '/workspaces/' + parameters.workspace_gid + '/typeahead',
       {
@@ -250,7 +250,7 @@ Asana.ServerModel = {
         opt_fields: 'name,photo.image_60x60',
       },
       function(responseJson) {
-        var users = responseJson.data;
+        const users = responseJson.data;
         users.forEach(function(user) {
           self._updateUser(parameters.workspace_gid, user);
         });
@@ -275,11 +275,11 @@ Asana.ServerModel = {
   },
 
   _cacheUserPhoto: function(user) {
-    var me = this;
+    const me = this;
     if (user.photo) {
-      var url = user.photo.image_60x60;
+      const url = user.photo.image_60x60;
       if (!(url in me._url_to_cached_image)) {
-        var image = new Image();
+        const image = new Image();
         image.src = url;
         me._url_to_cached_image[url] = image;
       }
@@ -291,7 +291,7 @@ Asana.ServerModel = {
    * whenever a popup is opened.
    */
   startPrimingCache: function() {
-    var me = this;
+    const me = this;
     me._cache_refresh_interval = setInterval(function() {
       me.refreshCache();
     }, me.CACHE_REFRESH_INTERVAL_MS);
@@ -299,7 +299,7 @@ Asana.ServerModel = {
   },
 
   refreshCache: function() {
-    var me = this;
+    const me = this;
     // Fetch logged-in user.
     me.me(function(user) {
       if (!user.errors) {

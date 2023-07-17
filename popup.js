@@ -4,7 +4,7 @@ const $$ = document.querySelectorAll.bind(document);
 /**
  * Code for the popup UI.
  */
-Popup = {
+const Popup = {
 
   // When popping up a window, the size given is for the content.
   // When resizing the same window, the size must include the chrome. Sigh.
@@ -25,9 +25,9 @@ Popup = {
    * now because the scrolling element is not the top-level element.
    */
   ensureBottomVisible: function(node) {
-    var el = $(node);
-    var pos = el.position();
-    var element_from_point = document.elementFromPoint(
+    const el = $(node);
+    const pos = el.position();
+    const element_from_point = document.elementFromPoint(
         pos.left, pos.top + el.height());
     if (element_from_point === null ||
         $(element_from_point).closest(node).size() === 0) {
@@ -63,7 +63,7 @@ Popup = {
   typeahead: null,
 
   onLoad: function() {
-    var me = this;
+    const me = this;
 
     me.is_external = ('' + window.location.search).indexOf('external=true') !== -1;
 
@@ -75,7 +75,7 @@ Popup = {
       active: true,
       currentWindow: true
     }, function(tabs) {
-      var tab = tabs[0];
+      const tab = tabs[0];
       // Now load our options ...
       chrome.storage.sync.get({
         defaultWorkspaceGid: '0',
@@ -141,13 +141,13 @@ Popup = {
 
     // The page details button fills in fields with details from the page
     // in the current tab (cached when the popup opened).
-    var use_page_details_button = $('#use_page_details');
+    const use_page_details_button = $('#use_page_details');
     use_page_details_button.addEventListener('click', function() {
       if (!(use_page_details_button.classList.contains('disabled'))) {
         // Page title -> task name
         $('#name_input').value = me.page_title;
         // Page url + selection -> task notes
-        var notes = $('#notes_input');
+        const notes = $('#notes_input');
         notes.value = notes.value + me.page_url + '\n' + me.page_selection;
         // Disable the page details button once used.        
         use_page_details_button.classList.add('disabled');
@@ -184,7 +184,7 @@ Popup = {
   },
 
   showAddUi: function(url, title, selected_text, favicon_url) {
-    var me = this;
+    const me = this;
 
     // Store off info from page we got triggered from.
     me.page_url = url;
@@ -205,7 +205,7 @@ Popup = {
         me.showError(responseJson.errors[0].message);
         return;
       }
-      var user = responseJson.data;
+      const user = responseJson.data;
       me.user_gid = user.gid;
 
       chrome.runtime.sendMessage(
@@ -219,12 +219,12 @@ Popup = {
           me.showError(responseJson2.errors[0].message);
           return;
         }
-        var workspaces = responseJson2.data;
+        const workspaces = responseJson2.data;
         me.workspaces = workspaces;
-        var select = $('#workspace_select');
+        const select = $('#workspace_select');
         select.innerHTML = '';
         workspaces.forEach(function(workspace) {
-          var workspaceOption = document.createElement('option');
+          const workspaceOption = document.createElement('option');
           workspaceOption.value = workspace.gid;
           workspaceOption.textContent = workspace.name;
           $('#workspace_select').append(workspaceOption);
@@ -244,7 +244,7 @@ Popup = {
         // Set initial UI state
         me.resetFields();
         me.showView('add');
-        var name_input = $('#name_input');
+        const name_input = $('#name_input');
         name_input.focus();
         name_input.select();
 
@@ -262,13 +262,13 @@ Popup = {
    * @param enabled {Boolean} True iff the add button should be clickable.
    */
   setAddEnabled: function(enabled) {
-    var me = this;
-    var button = $('#add_button');
-    var createTaskOnClick = function() {
+    const me = this;
+    const button = $('#add_button');
+    const createTaskOnClick = function() {
       me.createTask();
       return false;
     };
-    var createTaskWithEnter = function(e) {
+    const createTaskWithEnter = function(e) {
       if (e.keyCode === 13) {
         me.createTask();
       }
@@ -320,8 +320,8 @@ Popup = {
    * Update the list of users as a result of setting/changing the workspace.
    */
   onWorkspaceChanged: function() {
-    var me = this;
-    var workspace_gid = me.selectedWorkspaceId();
+    const me = this;
+    const workspace_gid = me.selectedWorkspaceId();
 
     // Update selected workspace
     $('#workspace').innerHTML = ($('#workspace_select option:checked') || $('#workspace_select option')).textContent;
@@ -339,7 +339,7 @@ Popup = {
    * @return {dict} Workspace data for the given workspace.
    */
   workspaceById: function(gid) {
-    var found = null;
+    let found = null;
     this.workspaces.forEach(function(w) {
       if (w.gid === gid) {
         found = w;
@@ -359,7 +359,7 @@ Popup = {
    * Create a task in asana using the data in the form.
    */
   createTask: function() {
-    var me = this;
+    const me = this;
 
     // Update UI to reflect attempt to create task.
     console.info('Creating task');
@@ -387,7 +387,7 @@ Popup = {
           me.showError(responseJson.errors[0].message);
           return;
         }
-        var task = responseJson.data;
+        const task = responseJson.data;
         // Success! Show task success, then get ready for another input.
         me.setAddWorking(false);
         me.showSuccess(task);
@@ -401,16 +401,16 @@ Popup = {
    * Helper to show a success message after a task is added.
    */
   showSuccess: function(task) {
-    var me = this;
+    const me = this;
     // We don't know what pot to view it in so we just use the task ID
     // and Asana will choose a suitable default.
-    var url = 'https://app.asana.com/0/' + task.gid + '/' + task.gid;
+    const url = 'https://app.asana.com/0/' + task.gid + '/' + task.gid;
 
-    var name = task.name.replace(/^\s*/, '').replace(/\s*$/, '');
-    var link = $('#new_task_link');
+    const name = task.name.replace(/^\s*/, '').replace(/\s*$/, '');
+    const link = $('#new_task_link');
     link.href = url;
     link.textContent = name !== '' ? name : 'Task';
-    var openCreatedTaskOnClick = function() {
+    const openCreatedTaskOnClick = function() {
       chrome.tabs.create({url: url});
       window.close();
       return false;
@@ -431,7 +431,7 @@ Popup = {
    * Show the login page.
    */
   showLogin: function(login_url, signup_url) {
-    var me = this;
+    const me = this;
     $('#login_button').addEventListener('click', (function() {
       chrome.tabs.create({url: login_url});
       window.close();
@@ -471,8 +471,9 @@ Popup = {
  * @param gid {String} Base ID of the typeahead element.
  * @constructor
  */
-UserTypeahead = function(gid) {
-  var me = this;
+
+const UserTypeahead = function(gid) {
+  const me = this;
   me.gid = gid;
   me.users = [];
   me.filtered_users = [];
@@ -497,7 +498,7 @@ UserTypeahead = function(gid) {
       // If a user was already selected, fill the field with their name
       // and select it all.  The user_gid_to_user dict may not be populated yet.
       if (me.user_gid_to_user[me.selected_user_gid]) {
-        var assignee_name = me.user_gid_to_user[me.selected_user_gid].name;
+        const assignee_name = me.user_gid_to_user[me.selected_user_gid].name;
         me.input.value = assignee_name;
       } else {
         me.input.value = '';
@@ -546,7 +547,7 @@ UserTypeahead = function(gid) {
       return false;
     } else if (e.which === 40) {
       // Down: select next.
-      var index = me._indexOfSelectedUser();
+      const index = me._indexOfSelectedUser();
       if (index === -1 && me.filtered_users.length > 0) {
         me.setSelectedUserId(me.filtered_users[0].gid);
       } else if (index >= 0 && index < me.filtered_users.length) {
@@ -556,7 +557,7 @@ UserTypeahead = function(gid) {
       e.preventDefault();
     } else if (e.which === 38) {
       // Up: select prev.
-      var index = me._indexOfSelectedUser();
+      const index = me._indexOfSelectedUser();
       if (index > 0) {
         me.setSelectedUserId(me.filtered_users[index - 1].gid);
       }
@@ -591,11 +592,11 @@ Object.assign(UserTypeahead, {
    * @returns {jQuery} photo element
    */
   photoForUser: function(user, size) {
-    var photo = document.createElement('div');
+    const photo = document.createElement('div');
     photo.classList.add('Avatar', 'Avatar--' + size);
-    var url = user.photo ? user.photo.image_60x60 : UserTypeahead.SILHOUETTE_URL;
+    const url = user.photo ? user.photo.image_60x60 : UserTypeahead.SILHOUETTE_URL;
     photo.style.backgroundImage = 'url(' + url + ')';
-    var photoView = document.createElement('div');
+    const photoView = document.createElement('div');
     photoView.classList.add('photo-view', size, 'tokenView-photo');
     photoView.append(photo);
     return photoView;
@@ -609,7 +610,7 @@ Object.assign(UserTypeahead.prototype, {
    * Render the typeahead, changing elements and content as needed.
    */
   render: function() {
-    var me = this;
+    const me = this;
     if (this.has_focus) {
       // Focused - show the list and input instead of the label.
       me._renderList();
@@ -629,10 +630,10 @@ Object.assign(UserTypeahead.prototype, {
    * @param users {dict[]}
    */
   updateUsers: function(users) {
-    var me = this;
+    const me = this;
     // Build a map from user ID to user
-    var this_user = null;
-    var users_without_this_user = [];
+    let this_user = null;
+    const users_without_this_user = [];
     me.user_gid_to_user = {};
     users.forEach(function(user) {
       if (user.gid === Popup.user_gid) {
@@ -658,8 +659,8 @@ Object.assign(UserTypeahead.prototype, {
   },
 
   _renderTokenOrPlaceholder: function() {
-    var me = this;
-    var selected_user = me.user_gid_to_user[me.selected_user_gid];
+    const me = this;
+    const selected_user = me.user_gid_to_user[me.selected_user_gid];
     if (selected_user) {
       me.token.innerHTML = '';
       if (selected_user.photo) {
@@ -674,7 +675,7 @@ Object.assign(UserTypeahead.prototype, {
           '    <polygon points="23.778,5.393 16,13.172 8.222,5.393 5.393,8.222 13.172,16 5.393,23.778 8.222,26.607 16,18.828 23.778,26.607 26.607,23.778 18.828,16 26.607,8.222"></polygon>' +
           '  </svg>' +
           '</a>';
-      $('#' + me.gid + '_token_remove').addEventListener('mousedown', function(e) {
+      $('#' + me.gid + '_token_remove').addEventListener('mousedown', function() {
         me.selected_user_gid = null;
         me._updateInput();
         me.input.focus();
@@ -688,7 +689,7 @@ Object.assign(UserTypeahead.prototype, {
   },
 
   _renderList: function() {
-    var me = this;
+    const me = this;
     me.list.innerHTML = '';
     me.filtered_users.forEach(function(user) {
       me.list.append(me._entryForUser(user, user.gid === me.selected_user_gid));
@@ -696,12 +697,12 @@ Object.assign(UserTypeahead.prototype, {
   },
 
   _entryForUser: function(user, is_selected) {
-    var me = this;
-    var node = document.createElement('div');
+    const me = this;
+    const node = document.createElement('div');
     node.id = 'user_' + user.gid;
     node.classList.add('user');
     node.append(UserTypeahead.photoForUser(user, 'inbox'));
-    var userName = document.createElement('div');
+    const userName = document.createElement('div');
     userName.classList.add('user-name');
     userName.textContent = user.name;
     node.append(userName);
@@ -730,10 +731,10 @@ Object.assign(UserTypeahead.prototype, {
   },
 
   _updateUsers: function() {
-    var me = this;
+    const me = this;
 
     this._request_counter += 1;
-    var current_request_counter = this._request_counter;
+    const current_request_counter = this._request_counter;
     chrome.runtime.sendMessage(
       {
         type: 'api',
@@ -749,7 +750,7 @@ Object.assign(UserTypeahead.prototype, {
           me.showError(responseJson.errors[0].message);
           return;
         }
-        var users = responseJson.data;
+        const users = responseJson.data;
         if (me._request_counter === current_request_counter) {
           // Update the ID -> User map.
           users.forEach(function (user) {
@@ -764,8 +765,8 @@ Object.assign(UserTypeahead.prototype, {
   },
 
   _indexOfSelectedUser: function() {
-    var me = this;
-    var selected_user = me.user_gid_to_user[me.selected_user_gid];
+    const me = this;
+    const selected_user = me.user_gid_to_user[me.selected_user_gid];
     if (selected_user) {
       return me.filtered_users.indexOf(selected_user);
     } else {
@@ -779,16 +780,16 @@ Object.assign(UserTypeahead.prototype, {
    * to ensure the selected user is always visible in the list.
    */
   _ensureSelectedUserVisible: function() {
-    var index = this._indexOfSelectedUser();
+    const index = this._indexOfSelectedUser();
     if (index !== -1) {
-      var node = this.list.children()[index];
+      const node = this.list.children()[index];
       this.ensureBottomVisible(node);
     }
   },
 
   _updateInput: function() {
-    var me = this;
-    var selected_user = me.user_gid_to_user[me.selected_user_gid];
+    const me = this;
+    const selected_user = me.user_gid_to_user[me.selected_user_gid];
     if (selected_user) {
       me.input.value = selected_user.name;
     } else {
